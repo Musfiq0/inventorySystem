@@ -3,7 +3,6 @@ using InventoryManagement.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure database connection
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -15,7 +14,7 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Configure error handling
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -69,7 +68,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred while initializing the database.");      
-        Console.WriteLine("\n🔴 DATABASE CONNECTION FAILED");
+        Console.WriteLine("\nERROR: DATABASE CONNECTION FAILED");
         Console.WriteLine("Please start XAMPP MySQL service and restart the application.");
         Console.WriteLine("The application will continue but database features won't work.\n");
     }
