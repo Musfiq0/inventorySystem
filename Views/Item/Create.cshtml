@@ -1,11 +1,6 @@
 @model InventoryManagement.Models.Item
 
 @{
-    /*
-     * Item Create/Edit Form - Unified form for adding new items or editing existing ones
-     * This form includes comprehensive validation, user-friendly input fields,
-     * and helpful guidance for beginners
-     */
     bool isEdit = Model?.Id != null;
     ViewData["Title"] = isEdit ? $"Edit {Model?.Name}" : "Add New Item";
     var inventory = ViewBag.Inventory as InventoryManagement.Models.Inventory;

@@ -1,11 +1,6 @@
 @model IEnumerable<InventoryManagement.Models.Item>
 
 @{
-    /*
-     * Item Management - Main page for viewing and managing items
-     * This view shows items for a specific inventory with full CRUD operations
-     * Includes search, filtering, and bulk operations for efficient item management
-     */
     var inventory = ViewBag.Inventory as InventoryManagement.Models.Inventory;
     var canEdit = ViewBag.CanEdit as bool? ?? false;
     var isInventorySpecific = inventory != null;
