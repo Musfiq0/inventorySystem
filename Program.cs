@@ -11,7 +11,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// Add MVC support
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -27,7 +26,6 @@ else
     app.UseHsts();
 }
 
-// Configure middleware pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
