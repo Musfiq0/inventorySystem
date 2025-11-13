@@ -6,9 +6,11 @@
      * This view shows items for a specific inventory with full CRUD operations
      * Includes search, filtering, and bulk operations for efficient item management
      */
-    ViewData["Title"] = "Item Management";
     var inventory = ViewBag.Inventory as InventoryManagement.Models.Inventory;
     var canEdit = ViewBag.CanEdit as bool? ?? false;
+    var isInventorySpecific = inventory != null;
+    
+    ViewData["Title"] = isInventorySpecific ? "Item Management" : "All Items";
 }
 
 <!-- Page Header -->
@@ -16,38 +18,62 @@
     <div>
         <h1 class="h3 mb-0">
             <i class="fas fa-tags text-info me-2"></i>
-            Item Management
+            @if (isInventorySpecific)
+            {
+                @:Item Management
+            }
+            else
+            {
+                @:All Items
+            }
         </h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item">
-                    <a href="@Url.Action("Index", "Inventory")">
-                        <i class="fas fa-home me-1"></i>Inventories
-                    </a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="@Url.Action("Details", "Inventory", new { id = inventory?.Id })">
-                        @inventory?.Name
-                    </a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Items</li>
-            </ol>
-        </nav>
+        @if (isInventorySpecific)
+        {
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index", "Inventory")">
+                            <i class="fas fa-home me-1"></i>Inventories
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Details", "Inventory", new { id = inventory?.Id })">
+                            @inventory?.Name
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Items</li>
+                </ol>
+            </nav>
+        }
+        else
+        {
+            <p class="text-muted mb-0">Items across all inventories</p>
+        }
     </div>
     
     <!-- Action Buttons -->
     <div class="d-flex gap-2">
-        @if (canEdit)
+        @if (isInventorySpecific && canEdit)
         {
             <a href="@Url.Action("Create", "Item", new { inventoryId = inventory?.Id })" class="btn btn-success">
                 <i class="fas fa-plus me-1"></i>
                 Add New Item
             </a>
         }
-        <a href="@Url.Action("Details", "Inventory", new { id = inventory?.Id })" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i>
-            Back to Inventory
-        </a>
+        @if (isInventorySpecific)
+        {
+            <a href="@Url.Action("Details", "Inventory", new { id = inventory?.Id })" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>
+                Back to Inventory
+            </a>
+        }
+        else
+        {
+            <a href="@Url.Action("Index", "Inventory")" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>
+                Back to Inventories
+            </a>
+        }
     </div>
 </div>
 
@@ -101,8 +127,11 @@
 <!-- Search and Filter Section -->
 <div class="card mb-4">
     <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-3">
-            <input type="hidden" name="inventoryId" value="@ViewBag.InventoryId" />
+        <form asp-action="@(isInventorySpecific ? "ByInventory" : "Index")" method="get" class="row g-3">
+            @if (isInventorySpecific)
+            {
+                <input type="hidden" name="inventoryId" value="@ViewBag.InventoryId" />
+            }
             
             <!-- Search Input -->
             <div class="col-md-4">
@@ -114,7 +143,7 @@
                            name="search" 
                            value="@ViewBag.CurrentSearch"
                            class="form-control" 
-                           placeholder="Search items by name, description, or SKU..."
+                           placeholder="@(isInventorySpecific ? "Search items by name, description, or SKU..." : "Search items by name, description, SKU, or inventory...")"
                            aria-label="Search items">
                 </div>
             </div>
@@ -319,13 +348,17 @@
                                     <i class="fas fa-tag me-1"></i>
                                     Item Name
                                 </th>
+                                @if (!isInventorySpecific)
+                                {
+                                    <th scope="col">Inventory</th>
+                                }
                                 <th scope="col">SKU</th>
                                 <th scope="col">Category</th>
                                 <th scope="col">Quantity</th>
                                 <th scope="col">Price</th>
                                 <th scope="col">Total Value</th>
                                 <th scope="col">Status</th>
-                                @if (canEdit)
+                                @if (canEdit || !isInventorySpecific)
                                 {
                                     <th scope="col" class="text-center">Actions</th>
                                 }
@@ -342,6 +375,14 @@
                                             <br><small class="text-muted">@item.Description</small>
                                         }
                                     </td>
+                                    @if (!isInventorySpecific)
+                                    {
+                                        <td>
+                                            <a href="@Url.Action("Details", "Inventory", new { id = item.InventoryId })" class="text-decoration-none">
+                                                <span class="badge bg-secondary">@item.Inventory.Name</span>
+                                            </a>
+                                        </td>
+                                    }
                                     <td>
                                         @if (!string.IsNullOrEmpty(item.SKU))
                                         {
@@ -383,25 +424,37 @@
                                             <span class="badge bg-success">In Stock</span>
                                         }
                                     </td>
-                                    @if (canEdit)
+                                    @if (canEdit || !isInventorySpecific)
                                     {
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <a href="@Url.Action("Edit", "Item", new { id = item.Id })" 
-                                                   class="btn btn-outline-warning"
-                                                   title="Edit Item"
-                                                   data-bs-toggle="tooltip">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
-                                                    <button type="submit" 
-                                                            class="btn btn-outline-danger"
-                                                            title="Delete Item"
-                                                            data-bs-toggle="tooltip"
-                                                            onclick="return confirmDeleteItem('@item.Id', '@item.Name')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
+                                                @if (canEdit)
+                                                {
+                                                    <a href="@Url.Action("Edit", "Item", new { id = item.Id })" 
+                                                       class="btn btn-outline-warning"
+                                                       title="Edit Item"
+                                                       data-bs-toggle="tooltip">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
+                                                        <button type="submit" 
+                                                                class="btn btn-outline-danger"
+                                                                title="Delete Item"
+                                                                data-bs-toggle="tooltip"
+                                                                onclick="return confirmDeleteItem('@item.Id', '@item.Name')">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                @if (!isInventorySpecific)
+                                                {
+                                                    <a href="@Url.Action("ByInventory", "Item", new { inventoryId = item.InventoryId })" 
+                                                       class="btn btn-outline-info"
+                                                       title="View in Inventory"
+                                                       data-bs-toggle="tooltip">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
                                             </div>
                                         </td>
                                     }
@@ -426,18 +479,30 @@ else
                 {
                     @:No items match your search criteria.
                     <br>
-                    <a href="@Url.Action("Index", "Item", new { inventoryId = ViewBag.InventoryId })" class="btn btn-outline-primary mt-2">
+                    <a href="@Url.Action(isInventorySpecific ? "ByInventory" : "Index", "Item", isInventorySpecific ? new { inventoryId = ViewBag.InventoryId } : null)" class="btn btn-outline-primary mt-2">
                         <i class="fas fa-times me-1"></i>
                         Clear Search
                     </a>
                 }
                 else
                 {
-                    @:This inventory doesn't have any items yet.
+                    @if (isInventorySpecific)
+                    {
+                        @:This inventory doesn't have any items yet.
+                    }
+                    else
+                    {
+                        @:No items have been created yet.
+                        <br>
+                        <a href="@Url.Action("Index", "Inventory")" class="btn btn-success mt-2">
+                            <i class="fas fa-plus me-1"></i>
+                            Create Your First Inventory
+                        </a>
+                    }
                 }
             </p>
             
-            @if (canEdit)
+            @if (canEdit && isInventorySpecific)
             {
                 <a href="@Url.Action("Create", "Item", new { inventoryId = ViewBag.InventoryId })" class="btn btn-success">
                     <i class="fas fa-plus me-1"></i>

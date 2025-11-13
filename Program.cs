@@ -36,6 +36,11 @@ app.UseAuthorization();
 
 // Configure routing
 app.MapControllerRoute(
+    name: "itemsByInventory",
+    pattern: "Item/Inventory/{inventoryId:int}",
+    defaults: new { controller = "Item", action = "ByInventory" });
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Inventory}/{action=Index}/{id?}");
 
