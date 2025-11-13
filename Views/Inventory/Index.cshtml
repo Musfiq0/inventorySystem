@@ -1,0 +1,230 @@
+@model IEnumerable<Inventory>
+@{
+    ViewData["Title"] = "Inventory Management System";
+}
+
+<!-- Hero Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="bg-primary text-white rounded p-4">
+            <div class="row align-items-center">
+                <div class="col-12">
+                    <h1 class="display-5 fw-bold mb-2">
+                        <i class="fas fa-boxes me-3"></i>Inventory Management System
+                    </h1>
+                    <p class="lead mb-0">
+                        Organize, track, and manage your inventories with ease. 
+                        Create categories, add items, and keep track of everything in one place.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" asp-action="Index" asp-controller="Inventory" class="row g-3">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" name="search" class="form-control" 
+                                   placeholder="Search inventories by name or description..." 
+                                   value="@ViewBag.CurrentSearch" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                        {
+                            <a asp-action="Index" asp-controller="Inventory" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </a>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Section -->
+<div class="row">
+    <div class="col-12">
+        <!-- Results Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>
+                @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                {
+                    <span>Search Results for "@ViewBag.CurrentSearch"</span>
+                    <small class="text-muted">(@Model.Count() found)</small>
+                }
+                else
+                {
+                    <span>All Inventories</span>
+                    <small class="text-muted">(@Model.Count() total)</small>
+                }
+            </h3>
+            
+            <a asp-action="Create" asp-controller="Inventory" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Create New
+            </a>
+        </div>
+        
+        <!-- Inventories Grid -->
+        @if (Model.Any())
+        {
+            <div class="row">
+                @foreach (var inventory in Model)
+                {
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-warehouse text-primary me-2"></i>
+                                        @inventory.Name
+                                    </h5>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                                type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" asp-action="Edit" asp-controller="Inventory" asp-route-id="@inventory.Id">
+                                                        <i class="fas fa-edit me-2"></i>Edit
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" asp-action="Delete" asp-controller="Inventory" asp-route-id="@inventory.Id">
+                                                        <i class="fas fa-trash me-2"></i>Delete
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    
+                                </div>
+                            </div>
+                            
+                            <div class="card-body">
+                                <!-- Description -->
+                                @if (!string.IsNullOrEmpty(inventory.Description))
+                                {
+                                    <p class="card-text text-muted mb-3">
+                                        @(inventory.Description.Length > 100 ? 
+                                          inventory.Description.Substring(0, 100) + "..." : 
+                                          inventory.Description)
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="card-text text-muted mb-3 fst-italic">
+                                        No description provided
+                                    </p>
+                                }
+                                
+                                <!-- Statistics -->
+                                <div class="row text-center mb-3">
+                                    <div class="col-6">
+                                        <div class="border-end">
+                                            <h4 class="text-primary mb-0">@inventory.TotalItems</h4>
+                                            <small class="text-muted">Items</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <h4 class="text-success mb-0">@inventory.TotalValue.ToString("C")</h4>
+                                        <small class="text-muted">Total Value</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Created Info -->
+                                <div class="d-flex justify-content-between align-items-center small text-muted mb-3">
+                                    <span>
+                                        <i class="fas fa-calendar me-1"></i>
+                                        @inventory.CreatedAt.ToString("MMM dd, yyyy")
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Card Footer -->
+                            <div class="card-footer bg-transparent">
+                                <div class="d-flex justify-content-between">
+                                    <a asp-action="Details" asp-controller="Inventory" asp-route-id="@inventory.Id" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-eye me-2"></i>View Details
+                                    </a>
+                                    
+                                    <a asp-action="Create" asp-controller="Item" asp-route-inventoryId="@inventory.Id" 
+                                       class="btn btn-outline-success">
+                                        <i class="fas fa-plus me-1"></i>Add Item
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-4x text-muted mb-4"></i>
+                @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                {
+                    <h4 class="text-muted">No inventories found</h4>
+                    <p class="text-muted mb-4">
+                        No inventories match your search criteria "@ViewBag.CurrentSearch".
+                    </p>
+                    <a asp-action="Index" asp-controller="Inventory" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>View All Inventories
+                    </a>
+                }
+                else
+                {
+                    <h4 class="text-muted">No inventories yet</h4>
+                    <p class="text-muted mb-4">
+                        Use the "Create New" button above to start organizing your items!
+                    </p>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Simple delete confirmation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus search input if there's a current search
+            @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+            {
+                <text>
+                var searchInput = document.querySelector('input[name="search"]');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
+                </text>
+            }
+            
+            // Add click handlers for delete links
+            document.querySelectorAll('a[href*="/Inventory/Delete/"]').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    var inventoryName = this.closest('.card').querySelector('.card-title').textContent.trim();
+                    if (!confirm('Are you sure you want to delete the inventory "' + inventoryName + '"?\n\nThis action cannot be undone and will also delete all items in this inventory.')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+}

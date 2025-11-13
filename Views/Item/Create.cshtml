@@ -1,0 +1,520 @@
+@model InventoryManagement.Models.Item
+
+@{
+    /*
+     * Item Create/Edit Form - Unified form for adding new items or editing existing ones
+     * This form includes comprehensive validation, user-friendly input fields,
+     * and helpful guidance for beginners
+     */
+    bool isEdit = Model?.Id != null;
+    ViewData["Title"] = isEdit ? $"Edit {Model?.Name}" : "Add New Item";
+    var inventory = ViewBag.Inventory as InventoryManagement.Models.Inventory;
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-0">
+            <i class="fas fa-@(isEdit ? "edit" : "plus") text-@(isEdit ? "warning" : "success") me-2"></i>
+            @(isEdit ? "Edit Item" : "Add New Item")
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Inventory")">
+                        <i class="fas fa-home me-1"></i>Inventories
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Details", "Inventory", new { id = inventory?.Id })">
+                        @inventory?.Name
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Item", new { inventoryId = inventory?.Id })">
+                        Items
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">@(isEdit ? "Edit" : "Add")</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <!-- Cancel Button -->
+    <a href="@Url.Action("Index", "Item", new { inventoryId = ViewBag.InventoryId })" class="btn btn-outline-secondary">
+        <i class="fas fa-times me-1"></i>
+        Cancel
+    </a>
+</div>
+
+<!-- Inventory Information Card -->
+@if (inventory != null)
+{
+    <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+        <i class="fas fa-info-circle me-3"></i>
+        <div>
+            <strong>Adding item to: @inventory.Name</strong>
+            <br>
+            <small class="text-muted">
+                This item will be added to the "@inventory.Name" inventory
+            </small>
+        </div>
+    </div>
+}
+
+<!-- Main Form -->
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" class="needs-validation" novalidate>
+    
+    <!-- Hidden Fields -->
+    @if (isEdit)
+    {
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="CreatedAt" type="hidden" />
+    }
+    <input name="inventoryId" type="hidden" value="@ViewBag.InventoryId" />
+    
+    <div class="row">
+        <!-- Left Column - Basic Information -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        Basic Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Item Name -->
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label required">
+                            <i class="fas fa-tag me-1"></i>
+                            Item Name
+                        </label>
+                        <input asp-for="Name" 
+                               class="form-control" 
+                               placeholder="Enter a descriptive name for the item..."
+                               required
+                               maxlength="100"
+                               autofocus>
+                        <div class="form-text">
+                            Choose a clear, descriptive name (e.g., "Apple iPhone 13 Pro Max")
+                        </div>
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>
+                            Description
+                        </label>
+                        <textarea asp-for="Description" 
+                                  class="form-control" 
+                                  rows="3" 
+                                  placeholder="Provide additional details about the item..."
+                                  maxlength="500"></textarea>
+                        <div class="form-text">
+                            Optional: Include specifications, conditions, or any other relevant details
+                        </div>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                    
+                    <!-- Category and SKU Row -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Category" class="form-label">
+                                    <i class="fas fa-folder me-1"></i>
+                                    Category
+                                </label>
+                                <select asp-for="Category" class="form-control">
+                                    <option value="">-- Select Category --</option>
+                                    <option value="Office Supplies">Office Supplies</option>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Furniture">Furniture</option>
+                                    <option value="Equipment">Equipment</option>
+                                    <option value="Tools">Tools</option>
+                                    <option value="Consumables">Consumables</option>
+                                    <option value="Safety">Safety</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Medical">Medical</option>
+                                    <option value="IT Hardware">IT Hardware</option>
+                                    <option value="Kitchen & Food">Kitchen & Food</option>
+                                    <option value="Cleaning">Cleaning</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                
+                                <div class="form-text">
+                                    Optional: Helps organize and filter items
+                                </div>
+                                <span asp-validation-for="Category" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="SKU" class="form-label">
+                                    <i class="fas fa-barcode me-1"></i>
+                                    SKU / Product Code
+                                </label>
+                                <input asp-for="SKU" 
+                                       class="form-control" 
+                                       placeholder="e.g., APP-IPH13-PM-128GB"
+                                       maxlength="50">
+                                <div class="form-text">
+                                    Optional: Stock Keeping Unit or product identifier
+                                </div>
+                                <span asp-validation-for="SKU" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column - Inventory & Financial Details -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator text-success me-2"></i>
+                        Inventory & Pricing
+                    </h5>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Quantity -->
+                    <div class="mb-3">
+                        <label asp-for="Quantity" class="form-label required">
+                            <i class="fas fa-cubes me-1"></i>
+                            Quantity
+                        </label>
+                        <input asp-for="Quantity" 
+                               type="number" 
+                               class="form-control" 
+                               min="0" 
+                               max="999999"
+                               placeholder="0"
+                               required>
+                        <div class="form-text">
+                            Current stock quantity
+                        </div>
+                        <span asp-validation-for="Quantity" class="text-danger"></span>
+                    </div>
+                    
+                    <!-- Price -->
+                    <div class="mb-3">
+                        <label asp-for="Price" class="form-label required">
+                            <i class="fas fa-dollar-sign me-1"></i>
+                            Unit Price
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="Price" 
+                                   type="number" 
+                                   class="form-control" 
+                                   step="0.01" 
+                                   min="0"
+                                   max="999999.99"
+                                   placeholder="0.00"
+                                   required>
+                        </div>
+                        <div class="form-text">
+                            Price per individual item
+                        </div>
+                        <span asp-validation-for="Price" class="text-danger"></span>
+                    </div>
+                    
+                    <!-- Total Value Display -->
+                    <div class="alert alert-light">
+                        <strong>
+                            <i class="fas fa-calculator text-info me-1"></i>
+                            Total Value: 
+                            <span id="totalValue">$0.00</span>
+                        </strong>
+                        <br>
+                        <small class="text-muted">Quantity × Unit Price</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stock Status Indicator -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-line text-info me-2"></i>
+                        Stock Status
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    <div id="stockStatus">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    @if (isEdit && Model != null)
+                    {
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            Created: @Model.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")
+                        </small>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    <!-- Cancel Button -->
+                    <a href="@Url.Action("Index", "Item", new { inventoryId = ViewBag.InventoryId })" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>
+                        Cancel
+                    </a>
+                    
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-@(isEdit ? "warning" : "success")">
+                        <i class="fas fa-@(isEdit ? "save" : "plus") me-1"></i>
+                        @(isEdit ? "Update Item" : "Add Item")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Help Section -->
+<div class="card mt-4">
+    <div class="card-body">
+        <h6 class="card-title">
+            <i class="fas fa-lightbulb text-warning me-2"></i>
+            Tips for Adding Items
+        </h6>
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li class="mb-1">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Use descriptive, specific names
+                    </li>
+                    <li class="mb-1">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Include model numbers or specifications
+                    </li>
+                    <li class="mb-1">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Categorize items for easy filtering
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li class="mb-1">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        SKU helps with inventory tracking
+                    </li>
+                    <li class="mb-1">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        Set realistic stock quantities
+                    </li>
+                    <li class="mb-1">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        Accurate pricing helps with valuation
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS for Item Form -->
+<style>
+    .required::after {
+        content: " *";
+        color: #dc3545;
+    }
+    
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .is-invalid {
+        border-color: #dc3545;
+    }
+    
+    .is-valid {
+        border-color: #198754;
+    }
+    
+    #totalValue {
+        font-size: 1.25rem;
+        color: #0d6efd;
+    }
+</style>
+
+<!-- JavaScript for Form Enhancements -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form elements
+        const quantityInput = document.querySelector('input[name="Quantity"]');
+        const priceInput = document.querySelector('input[name="Price"]');
+        const totalValueSpan = document.getElementById('totalValue');
+        const stockStatus = document.getElementById('stockStatus');
+        const form = document.querySelector('form');
+        
+        // Calculate total value
+        function updateCalculations() {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const totalValue = quantity * price;
+            
+            // Update total value display
+            totalValueSpan.textContent = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(totalValue);
+            
+            // Update stock status
+            updateStockStatus(quantity);
+        }
+        
+        // Update stock status indicator
+        function updateStockStatus(quantity) {
+            let statusHtml = '';
+            
+            if (quantity === 0) {
+                statusHtml = `
+                    <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                    <h6 class="text-danger">Out of Stock</h6>
+                    <small class="text-muted">No items available</small>
+                `;
+            } else if (quantity < 10) {
+                statusHtml = `
+                    <i class="fas fa-exclamation-circle fa-2x text-warning mb-2"></i>
+                    <h6 class="text-warning">Low Stock</h6>
+                    <small class="text-muted">Consider restocking soon</small>
+                `;
+            } else {
+                statusHtml = `
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h6 class="text-success">Good Stock</h6>
+                    <small class="text-muted">Adequate inventory level</small>
+                `;
+            }
+            
+            stockStatus.innerHTML = statusHtml;
+        }
+        
+        // Event listeners for real-time calculation
+        quantityInput.addEventListener('input', updateCalculations);
+        priceInput.addEventListener('input', updateCalculations);
+        
+        // Initial calculation
+        updateCalculations();
+        
+        // Form validation
+        form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Show validation feedback
+                form.classList.add('was-validated');
+                
+                // Focus on first invalid field
+                const firstInvalid = form.querySelector(':invalid');
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                }
+                
+                // Show alert
+                showAlert('Please correct the errors below before submitting.', 'danger');
+            } else {
+                // Show success message
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>@(isEdit ? "Updating..." : "Adding...")';
+                submitBtn.disabled = true;
+            }
+        });
+        
+        // Real-time validation
+        const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.checkValidity()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+            
+            input.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid') && this.checkValidity()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                }
+            });
+        });
+        
+        // Auto-generate SKU suggestion
+        const nameInput = document.querySelector('input[name="Name"]');
+        const categorySelect = document.querySelector('select[name="Category"]');
+        const skuInput = document.querySelector('input[name="SKU"]');
+        
+        function suggestSKU() {
+            if (skuInput.value.trim() === '') {
+                const name = nameInput.value.trim();
+                const category = categorySelect.value.trim();
+                
+                if (name) {
+                    let sku = '';
+                    
+                    // Use category prefix if available
+                    if (category) {
+                        sku += category.substring(0, 3).toUpperCase() + '-';
+                    }
+                    
+                    // Use name words
+                    const nameWords = name.split(' ').filter(word => word.length > 0);
+                    const nameAcronym = nameWords.map(word => word.substring(0, 3).toUpperCase()).join('-');
+                    sku += nameAcronym;
+                    
+                    skuInput.placeholder = `Suggested: ${sku}`;
+                }
+            }
+        }
+        
+        nameInput.addEventListener('blur', suggestSKU);
+        categorySelect.addEventListener('change', suggestSKU);
+        
+        console.log('Item form loaded successfully');
+    });
+    
+    // Alert function
+    function showAlert(message, type = 'info') {
+        const alertContainer = document.querySelector('.container') || document.body;
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+        alert.innerHTML = `
+            <i class="fas fa-${type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        alertContainer.insertBefore(alert, alertContainer.firstChild);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+</script>

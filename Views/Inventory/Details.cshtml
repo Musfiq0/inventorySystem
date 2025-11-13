@@ -1,0 +1,152 @@
+@model InventoryDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Inventory.Name + " Details";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>@Model.Inventory.Name</h1>
+            <p class="lead">@Model.Inventory.Description</p>
+            <p class="text-muted">Created: @Model.Inventory.CreatedAt.ToString("MMM dd, yyyy")</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items</h5>
+                    <h3>@Model.Items.Count</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">In Stock</h5>
+                    <h3>@Model.Items.Count(i => !i.IsLowStock && !i.IsOutOfStock)</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock</h5>
+                    <h3>@Model.Items.Count(i => i.IsLowStock && !i.IsOutOfStock)</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <a asp-controller="Item" asp-action="Create" asp-route-inventoryId="@Model.Inventory.Id" class="btn btn-success">
+                Add New Item
+            </a>
+            <a asp-controller="Inventory" asp-action="Edit" asp-route-id="@Model.Inventory.Id" class="btn btn-primary">
+                Edit Inventory
+            </a>
+            <a asp-controller="Inventory" asp-action="Index" class="btn btn-secondary">
+                Back to Inventories
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Items in this Inventory</h4>
+                </div>
+                <div class="card-body">
+                    @if (Model.Items.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Custom ID</th>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Quantity</th>
+                                        <th>Price</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.Items.OrderBy(i => i.CustomId))
+                                    {
+                                        <tr>
+                                            <td>@item.CustomId</td>
+                                            <td>@item.Name</td>
+                                            <td>@item.Description</td>
+                                            <td>@item.Quantity</td>
+                                            <td>@item.Price.ToString("C")</td>
+                                            <td>
+                                                @if (item.IsOutOfStock)
+                                                {
+                                                    <span class="badge bg-danger">Out of Stock</span>
+                                                }
+                                                else if (item.IsLowStock)
+                                                {
+                                                    <span class="badge bg-warning">Low Stock</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">In Stock</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <a asp-controller="Item" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                                                <button type="button" class="btn btn-sm btn-danger ms-1" data-bs-toggle="modal" data-bs-target="#deleteModal@(item.Id)">Delete</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <h5>No Items Found</h5>
+                            <p>This inventory doesn't have any items yet. Click "Add New Item" to get started.</p>
+                            <a asp-controller="Item" asp-action="Create" asp-route-inventoryId="@Model.Inventory.Id" class="btn btn-success">Add First Item</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modals -->
+@if (Model.Items.Any())
+{
+    @foreach (var item in Model.Items)
+    {
+        <div class="modal fade" id="deleteModal@(item.Id)" tabindex="-1" aria-labelledby="deleteModalLabel@(item.Id)" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel@(item.Id)">Confirm Delete</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to delete the item "<strong>@item.Name</strong>" (ID: @item.CustomId)?
+                        <br><small class="text-muted">This action cannot be undone.</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form asp-controller="Item" asp-action="Delete" asp-route-id="@item.Id" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

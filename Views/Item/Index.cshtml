@@ -1,0 +1,526 @@
+@model IEnumerable<InventoryManagement.Models.Item>
+
+@{
+    /*
+     * Item Management - Main page for viewing and managing items
+     * This view shows items for a specific inventory with full CRUD operations
+     * Includes search, filtering, and bulk operations for efficient item management
+     */
+    ViewData["Title"] = "Item Management";
+    var inventory = ViewBag.Inventory as InventoryManagement.Models.Inventory;
+    var canEdit = ViewBag.CanEdit as bool? ?? false;
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-0">
+            <i class="fas fa-tags text-info me-2"></i>
+            Item Management
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Inventory")">
+                        <i class="fas fa-home me-1"></i>Inventories
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Details", "Inventory", new { id = inventory?.Id })">
+                        @inventory?.Name
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Items</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2">
+        @if (canEdit)
+        {
+            <a href="@Url.Action("Create", "Item", new { inventoryId = inventory?.Id })" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i>
+                Add New Item
+            </a>
+        }
+        <a href="@Url.Action("Details", "Inventory", new { id = inventory?.Id })" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>
+            Back to Inventory
+        </a>
+    </div>
+</div>
+
+<!-- Inventory Information Card -->
+@if (inventory != null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-1">
+                        <i class="fas fa-box text-success me-2"></i>
+                        @inventory.Name
+                    </h5>
+                    <p class="text-muted mb-0">
+                        @if (!string.IsNullOrEmpty(inventory.Description))
+                        {
+                            @inventory.Description
+                        }
+                        else
+                        {
+                            @:No description provided
+                        }
+                    </p>
+                    <small class="text-muted">
+                        Created: <strong>@inventory.CreatedAt.ToString("MMM dd, yyyy")</strong>
+                    </small>
+                </div>
+                <div class="col-md-4 text-end">
+                    <!-- Inventory Statistics -->
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="mb-0 text-info">@inventory.TotalItems</h5>
+                            <small class="text-muted">Items</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="mb-0 text-success">@inventory.TotalQuantity</h5>
+                            <small class="text-muted">Total Qty</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="mb-0 text-primary">@inventory.TotalValue.ToString("C")</h5>
+                            <small class="text-muted">Value</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Search and Filter Section -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3">
+            <input type="hidden" name="inventoryId" value="@ViewBag.InventoryId" />
+            
+            <!-- Search Input -->
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" 
+                           name="search" 
+                           value="@ViewBag.CurrentSearch"
+                           class="form-control" 
+                           placeholder="Search items by name, description, or SKU..."
+                           aria-label="Search items">
+                </div>
+            </div>
+            
+            <!-- Category Filter -->
+            <div class="col-md-2">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    @foreach (var category in Model.Where(i => !string.IsNullOrEmpty(i.Category)).Select(i => i.Category).Distinct().OrderBy(c => c))
+                    {
+                        <option value="@category" selected="@(ViewBag.CurrentCategory == category)">
+                            @category
+                        </option>
+                    }
+                </select>
+            </div>
+            
+            <!-- Stock Filter -->
+            <div class="col-md-2">
+                <select name="stock" class="form-select">
+                    <option value="">All Stock Levels</option>
+                    <option value="low" selected="@(ViewBag.CurrentStock == "low")">Low Stock (< 10)</option>
+                    <option value="out" selected="@(ViewBag.CurrentStock == "out")">Out of Stock</option>
+                    <option value="good" selected="@(ViewBag.CurrentStock == "good")">Good Stock (≥ 10)</option>
+                </select>
+            </div>
+            
+            <!-- Sort Options -->
+            <div class="col-md-2">
+                <select name="sort" class="form-select">
+                    <option value="">Sort by Name</option>
+                    <option value="quantity" selected="@(ViewBag.CurrentSort == "quantity")">Sort by Quantity</option>
+                    <option value="price" selected="@(ViewBag.CurrentSort == "price")">Sort by Price</option>
+                    <option value="date" selected="@(ViewBag.CurrentSort == "date")">Sort by Date Added</option>
+                </select>
+            </div>
+            
+            <!-- Search Button -->
+            <div class="col-md-2">
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i>
+                        Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Items Display -->
+@if (Model.Any())
+{
+    <!-- Summary Statistics -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <small class="text-muted">
+                Showing @Model.Count() of @ViewBag.TotalItems items
+                @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                {
+                    @: matching "@ViewBag.CurrentSearch"
+                }
+            </small>
+        </div>
+        <div class="col-md-6 text-end">
+            <!-- View Mode Toggle -->
+            <div class="btn-group btn-group-sm" role="group" aria-label="View mode">
+                <button type="button" class="btn btn-outline-secondary active" onclick="switchView('cards')">
+                    <i class="fas fa-th"></i> Cards
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="switchView('table')">
+                    <i class="fas fa-list"></i> Table
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card View (Default) -->
+    <div id="cards-view" class="row">
+        @foreach (var item in Model)
+        {
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 item-card">
+                    <!-- Card Header with Stock Status -->
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            @if (!string.IsNullOrEmpty(item.Category))
+                            {
+                                <span class="badge bg-info">@item.Category</span>
+                            }
+                        </div>
+                        <div>
+                            <!-- Stock Status Badge -->
+                            @if (item.Quantity == 0)
+                            {
+                                <span class="badge bg-danger">Out of Stock</span>
+                            }
+                            else if (item.Quantity < 10)
+                            {
+                                <span class="badge bg-warning text-dark">Low Stock</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">In Stock</span>
+                            }
+                        </div>
+                    </div>
+                    
+                    <!-- Card Body -->
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-tag text-info me-2"></i>
+                            @item.Name
+                        </h5>
+                        
+                        @if (!string.IsNullOrEmpty(item.Description))
+                        {
+                            <p class="card-text text-muted small">@item.Description</p>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(item.SKU))
+                        {
+                            <p class="card-text">
+                                <small class="text-muted">SKU: <code>@item.SKU</code></small>
+                            </p>
+                        }
+                        
+                        <!-- Item Statistics -->
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="mb-0 text-primary">@item.Quantity</h6>
+                                    <small class="text-muted">Quantity</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="mb-0 text-success">@item.Price.ToString("C")</h6>
+                                    <small class="text-muted">Price</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="mb-0 text-info">@item.TotalValue.ToString("C")</h6>
+                                <small class="text-muted">Total Value</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Card Footer with Actions -->
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                @item.CreatedAt.ToString("MMM dd, yyyy")
+                            </small>
+                            
+                            @if (canEdit)
+                            {
+                                <!-- Edit/Delete Actions -->
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="@Url.Action("Edit", "Item", new { id = item.Id })" 
+                                       class="btn btn-outline-warning"
+                                       title="Edit Item"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
+                                        <button type="submit" 
+                                                class="btn btn-outline-danger"
+                                                title="Delete Item"
+                                                data-bs-toggle="tooltip"
+                                                onclick="return confirmDeleteItem('@item.Id', '@item.Name')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- View Only -->
+                                <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Only
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Table View (Hidden by default) -->
+    <div id="table-view" class="d-none">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">
+                                    <i class="fas fa-tag me-1"></i>
+                                    Item Name
+                                </th>
+                                <th scope="col">SKU</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Quantity</th>
+                                <th scope="col">Price</th>
+                                <th scope="col">Total Value</th>
+                                <th scope="col">Status</th>
+                                @if (canEdit)
+                                {
+                                    <th scope="col" class="text-center">Actions</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@item.Name</strong>
+                                        @if (!string.IsNullOrEmpty(item.Description))
+                                        {
+                                            <br><small class="text-muted">@item.Description</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.SKU))
+                                        {
+                                            <code>@item.SKU</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.Category))
+                                        {
+                                            <span class="badge bg-info">@item.Category</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="@(item.Quantity < 10 ? "text-warning" : item.Quantity == 0 ? "text-danger" : "")">
+                                            @item.Quantity
+                                        </span>
+                                    </td>
+                                    <td>@item.Price.ToString("C")</td>
+                                    <td>@item.TotalValue.ToString("C")</td>
+                                    <td>
+                                        @if (item.Quantity == 0)
+                                        {
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        }
+                                        else if (item.Quantity < 10)
+                                        {
+                                            <span class="badge bg-warning text-dark">Low Stock</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">In Stock</span>
+                                        }
+                                    </td>
+                                    @if (canEdit)
+                                    {
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="@Url.Action("Edit", "Item", new { id = item.Id })" 
+                                                   class="btn btn-outline-warning"
+                                                   title="Edit Item"
+                                                   data-bs-toggle="tooltip">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
+                                                    <button type="submit" 
+                                                            class="btn btn-outline-danger"
+                                                            title="Delete Item"
+                                                            data-bs-toggle="tooltip"
+                                                            onclick="return confirmDeleteItem('@item.Id', '@item.Name')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- No items found message -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No items found</h5>
+            <p class="text-muted mb-3">
+                @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                {
+                    @:No items match your search criteria.
+                    <br>
+                    <a href="@Url.Action("Index", "Item", new { inventoryId = ViewBag.InventoryId })" class="btn btn-outline-primary mt-2">
+                        <i class="fas fa-times me-1"></i>
+                        Clear Search
+                    </a>
+                }
+                else
+                {
+                    @:This inventory doesn't have any items yet.
+                }
+            </p>
+            
+            @if (canEdit)
+            {
+                <a href="@Url.Action("Create", "Item", new { inventoryId = ViewBag.InventoryId })" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>
+                    Add Your First Item
+                </a>
+            }
+        </div>
+    </div>
+}
+
+<!-- Custom CSS for Item Management -->
+<style>
+    .item-card {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+    
+    .item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-color: #007bff;
+    }
+    
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
+    }
+    
+    .btn-group-sm .btn {
+        margin-right: 1px;
+    }
+    
+    .btn-group-sm .btn:last-child {
+        margin-right: 0;
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+</style>
+
+<!-- JavaScript for Item Management -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        if (typeof bootstrap !== 'undefined') {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+        
+        // Auto-focus search input if it has content
+        const searchInput = document.querySelector('input[name="search"]');
+        if (searchInput && searchInput.value.trim()) {
+            searchInput.focus();
+            searchInput.select();
+        }
+        
+        console.log('Item Management page loaded successfully');
+    });
+    
+    // Switch between card and table views
+    function switchView(viewType) {
+        const cardsView = document.getElementById('cards-view');
+        const tableView = document.getElementById('table-view');
+        const cardBtn = document.querySelector('button[onclick="switchView(\'cards\')"]');
+        const tableBtn = document.querySelector('button[onclick="switchView(\'table\')"]');
+        
+        if (viewType === 'cards') {
+            cardsView.classList.remove('d-none');
+            tableView.classList.add('d-none');
+            cardBtn.classList.add('active');
+            tableBtn.classList.remove('active');
+        } else {
+            cardsView.classList.add('d-none');
+            tableView.classList.remove('d-none');
+            cardBtn.classList.remove('active');
+            tableBtn.classList.add('active');
+        }
+    }
+    
+    // Confirm delete item
+    function confirmDeleteItem(itemId, itemName) {
+        return confirm(`Are you sure you want to delete "${itemName}"?\n\nThis action cannot be undone.`);
+    }
+</script>
