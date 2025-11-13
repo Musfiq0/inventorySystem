@@ -14,37 +14,6 @@ dotnet run
 ```
 Open http://localhost:5000 in your browser.
 
-## Features
-
--  **Create inventories** (storage locations)
--  **Add items** to inventories with details like price, quantity, SKU
--  **Search and filter** items and inventories
--  **Edit and delete** inventories and items
--  **Public access** - no login required
--  **Responsive design** - works on mobile devices
-
-## Project Structure
-
-```
-InventoryManagement/
- Program.cs              # Application startup
- appsettings.json        # Database configuration
- Models/                 # Data models
-    Inventory.cs        # Inventory model
-    Item.cs            # Item model
-    AppDbContext.cs    # Database context
-    SeedData.cs        # Sample data
- Controllers/            # Request handlers
-    InventoryController.cs
-    ItemController.cs
- Views/                  # HTML templates
-    Inventory/         # Inventory pages
-    Item/              # Item pages
-    Shared/            # Common layouts
- wwwroot/               # Static files (CSS, JS)
- Migrations/            # Database schema
-```
-
 ## Database
 
 The application automatically creates a MySQL database named `InventoryManagement` with sample data:
