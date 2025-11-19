@@ -46,21 +46,25 @@ if (builder.Environment.IsProduction())
                 }
                 else
                 {
-                    Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing user credentials. Using default connection string.");
+                    Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing user credentials. Using PostgreSQL fallback.");
+                    connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
                 }
             }
             else
             {
-                Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing host or credentials. Using default connection string.");
+                Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing host or credentials. Using PostgreSQL fallback.");
+                connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
             }
         }
         catch (UriFormatException ex)
         {
-            Console.WriteLine($"Error parsing DATABASE_URL: {ex.Message}. Using default connection string.");
+            Console.WriteLine($"Error parsing DATABASE_URL: {ex.Message}. Using PostgreSQL fallback.");
+            connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Unexpected error with DATABASE_URL: {ex.Message}. Using default connection string.");
+            Console.WriteLine($"Unexpected error with DATABASE_URL: {ex.Message}. Using PostgreSQL fallback.");
+            connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
         }
     }
     else if (!string.IsNullOrWhiteSpace(mysqlUrl))
@@ -79,10 +83,16 @@ if (builder.Environment.IsProduction())
                     Console.WriteLine("Successfully parsed alternative PostgreSQL URL");
                 }
             }
+            else
+            {
+                Console.WriteLine("Invalid alternative URL format. Using PostgreSQL fallback.");
+                connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error parsing alternative PostgreSQL URL: {ex.Message}");
+            Console.WriteLine($"Error parsing alternative PostgreSQL URL: {ex.Message}. Using PostgreSQL fallback.");
+            connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
         }
     }
     else if (!string.IsNullOrWhiteSpace(dbHost) && !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhiteSpace(dbUser))
@@ -93,9 +103,9 @@ if (builder.Environment.IsProduction())
     }
     else
     {
-        Console.WriteLine("Warning: No database environment variables found. Application may fail to connect to database.");
-        // Set a default that will clearly fail with a helpful message
-        connectionString = "Host=NOT_CONFIGURED;Database=NOT_CONFIGURED;Username=NOT_CONFIGURED;Password=;";
+        Console.WriteLine("Warning: No database environment variables found. Using default PostgreSQL connection string.");
+        // Set a PostgreSQL default connection string
+        connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
     }
     
     Console.WriteLine("Final PostgreSQL connection string (masked): " + (connectionString?.Replace(";Password=", ";Password=***") ?? "null"));

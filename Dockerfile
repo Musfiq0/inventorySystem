@@ -14,7 +14,7 @@ RUN dotnet publish -c Release -o /app --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
-# Install necessary packages for MySQL/MariaDB support
+# Install necessary packages for PostgreSQL support
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
