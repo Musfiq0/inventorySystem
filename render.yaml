@@ -16,6 +16,27 @@ services:
         fromDatabase:
           name: inventory-postgres-db
           property: connectionString
+      # Try alternative database environment variable mappings
+      - key: DB_HOST
+        fromDatabase:
+          name: inventory-postgres-db
+          property: host
+      - key: DB_NAME
+        fromDatabase:
+          name: inventory-postgres-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: inventory-postgres-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: inventory-postgres-db
+          property: password
+      - key: DB_PORT
+        fromDatabase:
+          name: inventory-postgres-db
+          property: port
 
 databases:
   - name: inventory-postgres-db
