@@ -20,9 +20,17 @@ if (builder.Environment.IsProduction())
     var dbName = Environment.GetEnvironmentVariable("DB_NAME");
     var dbUser = Environment.GetEnvironmentVariable("DB_USER");
     var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
-    var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
+    var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432"; // Default to PostgreSQL port
+    
+    // Try PostgreSQL-specific environment variables that Render might use
+    var pgHost = Environment.GetEnvironmentVariable("PGHOST");
+    var pgPort = Environment.GetEnvironmentVariable("PGPORT");
+    var pgDatabase = Environment.GetEnvironmentVariable("PGDATABASE");
+    var pgUser = Environment.GetEnvironmentVariable("PGUSER");
+    var pgPassword = Environment.GetEnvironmentVariable("PGPASSWORD");
     
     Console.WriteLine($"Alternative vars - MYSQL_URL: {!string.IsNullOrEmpty(mysqlUrl)}, DB_HOST: {!string.IsNullOrEmpty(dbHost)}");
+    Console.WriteLine($"PostgreSQL vars - PGHOST: {!string.IsNullOrEmpty(pgHost)}, PGDATABASE: {!string.IsNullOrEmpty(pgDatabase)}, PGUSER: {!string.IsNullOrEmpty(pgUser)}");
     
     if (!string.IsNullOrWhiteSpace(databaseUrl) && databaseUrl.Trim().Length > 0)
     {
@@ -31,29 +39,58 @@ if (builder.Environment.IsProduction())
             var trimmedUrl = databaseUrl.Trim();
             Console.WriteLine($"Attempting to parse DATABASE_URL starting with: {trimmedUrl.Substring(0, Math.Min(15, trimmedUrl.Length))}...");
             
-            // Parse DATABASE_URL format: postgresql://username:password@host:port/database
-            var uri = new Uri(trimmedUrl);
-            
-            // Validate URI components
-            if (uri.Host != null && uri.UserInfo != null && uri.UserInfo.Contains(':'))
+            // Handle different potential formats from Render
+            if (trimmedUrl.StartsWith("postgresql://") || trimmedUrl.StartsWith("postgres://"))
             {
-                var userParts = uri.UserInfo.Split(':');
-                if (userParts.Length == 2)
+                // Parse DATABASE_URL format: postgresql://username:password@host:port/database
+                var uri = new Uri(trimmedUrl);
+                
+                // Validate URI components
+                if (uri.Host != null && uri.UserInfo != null && uri.UserInfo.Contains(':'))
                 {
-                    var uriPort = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
-                    connectionString = $"Host={uri.Host};Port={uriPort};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
-                    Console.WriteLine("Successfully parsed DATABASE_URL for PostgreSQL");
+                    var userParts = uri.UserInfo.Split(':');
+                    if (userParts.Length == 2)
+                    {
+                        var uriPort = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
+                        connectionString = $"Host={uri.Host};Port={uriPort};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
+                        Console.WriteLine("Successfully parsed DATABASE_URL for PostgreSQL");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing user credentials. Using PostgreSQL fallback.");
+                        connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing user credentials. Using PostgreSQL fallback.");
+                    Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing host or credentials. Using PostgreSQL fallback.");
                     connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
                 }
             }
             else
             {
-                Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing host or credentials. Using PostgreSQL fallback.");
-                connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
+                // Maybe it's a different format - try to use it directly as a connection string
+                Console.WriteLine("DATABASE_URL doesn't start with postgresql://, trying as direct connection string...");
+                
+                // Check if it contains PostgreSQL connection string components
+                if (trimmedUrl.Contains("Host=") || trimmedUrl.Contains("Server="))
+                {
+                    // Convert Server= to Host= if needed for PostgreSQL compatibility
+                    connectionString = trimmedUrl.Replace("Server=", "Host=").Replace("User=", "Username=");
+                    
+                    // Ensure SSL mode is set for production
+                    if (!connectionString.Contains("SSL Mode"))
+                    {
+                        connectionString += ";SSL Mode=Require;Trust Server Certificate=true;";
+                    }
+                    
+                    Console.WriteLine("Using DATABASE_URL as direct connection string (converted for PostgreSQL)");
+                }
+                else
+                {
+                    Console.WriteLine("DATABASE_URL format not recognized. Using PostgreSQL fallback.");
+                    connectionString = "Host=localhost;Database=inventorymanagement;Username=postgres;Password=;Port=5432;SSL Mode=Prefer;Trust Server Certificate=true;";
+                }
             }
         }
         catch (UriFormatException ex)
@@ -100,6 +137,13 @@ if (builder.Environment.IsProduction())
         Console.WriteLine("Using individual DB environment variables for PostgreSQL...");
         connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};Username={dbUser};Password={dbPassword ?? ""};SSL Mode=Require;Trust Server Certificate=true;";
         Console.WriteLine("Successfully built PostgreSQL connection string from individual variables");
+    }
+    else if (!string.IsNullOrWhiteSpace(pgHost) && !string.IsNullOrWhiteSpace(pgDatabase) && !string.IsNullOrWhiteSpace(pgUser))
+    {
+        Console.WriteLine("Using PostgreSQL-specific environment variables...");
+        var pgPortValue = !string.IsNullOrEmpty(pgPort) ? pgPort : "5432";
+        connectionString = $"Host={pgHost};Port={pgPortValue};Database={pgDatabase};Username={pgUser};Password={pgPassword ?? ""};SSL Mode=Require;Trust Server Certificate=true;";
+        Console.WriteLine("Successfully built PostgreSQL connection string from PG variables");
     }
     else
     {
