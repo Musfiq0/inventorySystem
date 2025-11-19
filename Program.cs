@@ -235,9 +235,17 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            await context.Database.MigrateAsync();
-            await SeedData.Initialize(services, builder.Configuration);
-            logger.LogInformation("Database initialized successfully");
+            try
+            {
+                await context.Database.MigrateAsync();
+                await SeedData.Initialize(services, builder.Configuration);
+                logger.LogInformation("Database initialized successfully");
+            }
+            catch (Npgsql.NpgsqlException npgsqlEx)
+            {
+                logger.LogWarning(npgsqlEx, "PostgreSQL connection failed in development. Skipping database initialization. Make sure PostgreSQL is running with correct credentials.");
+                logger.LogInformation("Application will continue without database - some features may not work.");
+            }
         }
     }
     catch (Npgsql.NpgsqlException npgsqlEx)
