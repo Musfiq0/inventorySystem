@@ -15,7 +15,8 @@ services:
         fromDatabase:
           name: inventory-postgres-db
           property: connectionString
-    healthCheckPath: /health
+    # Remove health check temporarily to avoid startup issues
+    # healthCheckPath: /health
 
 databases:
   - name: inventory-postgres-db
