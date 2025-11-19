@@ -29,9 +29,9 @@ if (builder.Environment.IsProduction())
         try
         {
             var trimmedUrl = databaseUrl.Trim();
-            Console.WriteLine($"Attempting to parse DATABASE_URL starting with: {trimmedUrl.Substring(0, Math.Min(10, trimmedUrl.Length))}...");
+            Console.WriteLine($"Attempting to parse DATABASE_URL starting with: {trimmedUrl.Substring(0, Math.Min(15, trimmedUrl.Length))}...");
             
-            // Parse DATABASE_URL format: mysql://username:password@host:port/database
+            // Parse DATABASE_URL format: postgresql://username:password@host:port/database
             var uri = new Uri(trimmedUrl);
             
             // Validate URI components
@@ -40,8 +40,9 @@ if (builder.Environment.IsProduction())
                 var userParts = uri.UserInfo.Split(':');
                 if (userParts.Length == 2)
                 {
-                    connectionString = $"Server={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};User={userParts[0]};Password={userParts[1]};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
-                    Console.WriteLine("Successfully parsed DATABASE_URL");
+                    var port = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
+                    connectionString = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
+                    Console.WriteLine("Successfully parsed DATABASE_URL for PostgreSQL");
                 }
                 else
                 {
@@ -66,56 +67,57 @@ if (builder.Environment.IsProduction())
     {
         try
         {
-            Console.WriteLine("Trying MYSQL_URL...");
+            Console.WriteLine("Trying POSTGRES_URL or alternative URL...");
             var uri = new Uri(mysqlUrl.Trim());
             if (uri.Host != null && uri.UserInfo != null && uri.UserInfo.Contains(':'))
             {
                 var userParts = uri.UserInfo.Split(':');
                 if (userParts.Length == 2)
                 {
-                    connectionString = $"Server={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};User={userParts[0]};Password={userParts[1]};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
-                    Console.WriteLine("Successfully parsed MYSQL_URL");
+                    var port = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
+                    connectionString = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
+                    Console.WriteLine("Successfully parsed alternative PostgreSQL URL");
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error parsing MYSQL_URL: {ex.Message}");
+            Console.WriteLine($"Error parsing alternative PostgreSQL URL: {ex.Message}");
         }
     }
     else if (!string.IsNullOrWhiteSpace(dbHost) && !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhiteSpace(dbUser))
     {
-        Console.WriteLine("Using individual DB environment variables...");
-        connectionString = $"Server={dbHost};Port={dbPort};Database={dbName};User={dbUser};Password={dbPassword ?? ""};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
-        Console.WriteLine("Successfully built connection string from individual variables");
+        Console.WriteLine("Using individual DB environment variables for PostgreSQL...");
+        connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};Username={dbUser};Password={dbPassword ?? ""};SSL Mode=Require;Trust Server Certificate=true;";
+        Console.WriteLine("Successfully built PostgreSQL connection string from individual variables");
     }
     else
     {
         Console.WriteLine("Warning: No database environment variables found. Application may fail to connect to database.");
         // Set a default that will clearly fail with a helpful message
-        connectionString = "Server=NOT_CONFIGURED;Database=NOT_CONFIGURED;User=NOT_CONFIGURED;Password=;";
+        connectionString = "Host=NOT_CONFIGURED;Database=NOT_CONFIGURED;Username=NOT_CONFIGURED;Password=;";
     }
     
-    Console.WriteLine("Final connection string (masked): " + (connectionString?.Replace(";Password=", ";Password=***") ?? "null"));
+    Console.WriteLine("Final PostgreSQL connection string (masked): " + (connectionString?.Replace(";Password=", ";Password=***") ?? "null"));
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (builder.Environment.IsProduction())
     {
-        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)), 
-            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+        options.UseNpgsql(connectionString, 
+            npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null));
+                errorCodesToAdd: null));
     }
     else
     {
-        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)),
-            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+        options.UseNpgsql(connectionString,
+            npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(10),
-                errorNumbersToAdd: null));
+                errorCodesToAdd: null));
     }
     
     if (builder.Environment.IsDevelopment())
@@ -210,7 +212,7 @@ using (var scope = app.Services.CreateScope())
                 catch (Exception ex) when (retryCount < maxRetries - 1)
                 {
                     retryCount++;
-                    logger.LogWarning($"Database initialization attempt {retryCount} failed. Retrying in 5 seconds...");
+                    logger.LogWarning($"Database initialization attempt {retryCount} failed: {ex.Message}. Retrying in 5 seconds...");
                     await Task.Delay(5000);
                 }
             }
@@ -222,9 +224,9 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("Database initialized successfully");
         }
     }
-    catch (MySqlConnector.MySqlException mysqlEx)
+    catch (Npgsql.NpgsqlException npgsqlEx)
     {
-        logger.LogError(mysqlEx, "MySQL connection error occurred while initializing the database.");
+        logger.LogError(npgsqlEx, "PostgreSQL connection error occurred while initializing the database.");
         if (builder.Environment.IsProduction())
         {
             logger.LogCritical("Application will continue without database initialization in production.");

@@ -13,12 +13,12 @@ services:
         value: Production
       - key: DATABASE_URL
         fromDatabase:
-          name: inventory-mysql-db
+          name: inventory-postgres-db
           property: connectionString
     healthCheckPath: /health
 
 databases:
-  - name: inventory-mysql-db
+  - name: inventory-postgres-db
     databaseName: inventorymanagement
     user: inventoryuser
     plan: free
