@@ -11,11 +11,13 @@ namespace InventoryManagement.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<InventoryController> _logger;
 
-        public InventoryController(AppDbContext context, UserManager<ApplicationUser> userManager)
+        public InventoryController(AppDbContext context, UserManager<ApplicationUser> userManager, ILogger<InventoryController> logger)
         {
             _context = context;
             _userManager = userManager;
+            _logger = logger;
         }
         
         [AllowAnonymous]
