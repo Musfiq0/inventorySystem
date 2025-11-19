@@ -1,0 +1,64 @@
+@model IEnumerable<InventoryManagement.Models.SiteContent>
+@{
+    ViewData["Title"] = "Edit Site Content";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>
+                    <i class="fas fa-edit text-warning me-2"></i>Edit Site Content
+                </h2>
+                <p class="text-muted mb-0">Update text content displayed throughout the site</p>
+            </div>
+            <a asp-controller="Inventory" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+
+        @foreach (var content in Model)
+        {
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        @content.Key
+                        <small class="text-muted">- @content.Description</small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="UpdateSiteContent" method="post">
+                        <input type="hidden" name="id" value="@content.Id" />
+                        <div class="row">
+                            <div class="col-md-10">
+                                @if (content.Key == "SiteDescription")
+                                {
+                                    <textarea name="value" class="form-control" rows="3" required>@content.Value</textarea>
+                                }
+                                else
+                                {
+                                    <input type="text" name="value" class="form-control" value="@content.Value" required />
+                                }
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-save me-1"></i>Update
+                                </button>
+                            </div>
+                        </div>
+                        @if (content.LastUpdated != default)
+                        {
+                            <small class="text-muted">
+                                Last updated: @content.LastUpdated.ToString("MMM dd, yyyy HH:mm")
+                                @if (!string.IsNullOrEmpty(content.UpdatedBy))
+                                {
+                                    @: by @content.UpdatedBy
+                                }
+                            </small>
+                        }
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

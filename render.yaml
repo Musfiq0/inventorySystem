@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: inventory-management
+    env: docker
+    repo: https://github.com/yourusername/inventory-management.git # Update with your repo
+    dockerfilePath: ./Dockerfile
+    numInstances: 1
+    plan: free
+    region: oregon # or your preferred region
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: inventory-mysql-db
+          property: connectionString
+    healthCheckPath: /
+
+databases:
+  - name: inventory-mysql-db
+    databaseName: inventorymanagement
+    user: inventoryuser
+    plan: free
+    region: oregon # or your preferred region

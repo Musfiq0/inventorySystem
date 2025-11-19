@@ -1,0 +1,90 @@
+@model IEnumerable<InventoryManagement.Models.ApplicationUser>
+@inject Microsoft.AspNetCore.Identity.UserManager<InventoryManagement.Models.ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>
+                    <i class="fas fa-users text-primary me-2"></i>User Management
+                </h2>
+                <p class="text-muted mb-0">Manage user accounts and admin privileges</p>
+            </div>
+            <a asp-controller="Inventory" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Registration Date</th>
+                                <th>Role</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@user.FullName</strong>
+                                        @if (user.IsAdmin)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">Admin</span>
+                                        }
+                                    </td>
+                                    <td>@user.Email</td>
+                                    <td>@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        @if (user.IsAdmin)
+                                        {
+                                            <span class="badge bg-danger">Administrator</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">User</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (user.Id != UserManager.GetUserId(User))
+                                        {
+                                            <form asp-action="ToggleAdminStatus" method="post" class="d-inline">
+                                                <input type="hidden" name="userId" value="@user.Id" />
+                                                <button type="submit" class="btn btn-sm @(user.IsAdmin ? "btn-outline-danger" : "btn-outline-success")"
+                                                        onclick="return confirm('Are you sure you want to change admin privileges for this user?')">
+                                                    @if (user.IsAdmin)
+                                                    {
+                                                        <i class="fas fa-user-minus me-1"></i>
+                                                        <text>Remove Admin</text>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fas fa-user-plus me-1"></i>
+                                                        <text>Make Admin</text>
+                                                    }
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Current User</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

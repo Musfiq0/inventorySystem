@@ -1,39 +1,115 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace InventoryManagement.Models
 {
-    // Creates sample inventory data for demonstration and testing
     public static class SeedData
     {
         public static async Task Initialize(IServiceProvider serviceProvider, IConfiguration configuration)
         {
             using var context = serviceProvider.GetRequiredService<AppDbContext>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
             try
             {
-                // Check if we already have data
                 if (await context.Inventories.AnyAsync())
                 {
-                    return; // Database already has data
+                    return;
                 }
+
+                await CreateRoles(roleManager);
+                
+                await CreateAdminUser(userManager);
+                
+                CreateSiteContent(context);
 
                 await CreateSampleData(context);
                 await context.SaveChangesAsync();
-
-                Console.WriteLine("Database seeded successfully with sample inventories and items.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error seeding database: {ex.Message}");
-                throw; // Re-throw to handle in Program.cs
+                throw;
             }
         }
 
-        /// Create sample inventory and items for testing and demonstration
-        /// <param name="context">Database context</param>
+        private static async Task CreateRoles(RoleManager<IdentityRole> roleManager)
+        {
+            string[] roles = { "Admin", "User" };
+
+            foreach (string role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+        }
+
+        private static async Task CreateAdminUser(UserManager<ApplicationUser> userManager)
+        {
+            string adminEmail = "admin@inventory.com";
+            string adminPassword = "Admin123!";
+
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+            if (adminUser == null)
+            {
+                adminUser = new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FirstName = "Admin",
+                    LastName = "User",
+                    CreatedAt = DateTime.UtcNow,
+                    IsAdmin = true,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, adminPassword);
+
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                }
+            }
+        }
+
+        private static void CreateSiteContent(AppDbContext context)
+        {
+            var siteContents = new List<SiteContent>
+            {
+                new SiteContent
+                {
+                    Key = "SiteTitle",
+                    Value = "Inventory Management System",
+                    Description = "Main site title displayed in header"
+                },
+                new SiteContent
+                {
+                    Key = "SiteDescription",
+                    Value = "Organize, track, and manage your inventories with ease. Create categories, add items, and keep track of everything in one place.",
+                    Description = "Site description shown on homepage"
+                },
+                new SiteContent
+                {
+                    Key = "FooterText",
+                    Value = "Simple inventory management solution.",
+                    Description = "Footer description text"
+                },
+                new SiteContent
+                {
+                    Key = "CompanyName",
+                    Value = "Inventory Management",
+                    Description = "Company name for branding"
+                }
+            };
+
+            context.SiteContents.AddRange(siteContents);
+        }
+
         private static async Task CreateSampleData(AppDbContext context)
         {
-            // Create sample inventories
             var officeInventory = new Inventory
             {
                 Name = "Office Supplies",
@@ -55,11 +131,9 @@ namespace InventoryManagement.Models
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Add inventories to database
             context.Inventories.AddRange(officeInventory, electronicsInventory, warehouseInventory);
-            await context.SaveChangesAsync(); // Save to get inventory IDs
+            await context.SaveChangesAsync();
 
-            // Create sample items for Office Supplies inventory
             var officeItems = new List<Item>
             {
                 new Item
@@ -112,7 +186,6 @@ namespace InventoryManagement.Models
                 }
             };
 
-            // Create sample items for Electronics inventory
             var electronicsItems = new List<Item>
             {
                 new Item
@@ -165,7 +238,6 @@ namespace InventoryManagement.Models
                 }
             };
 
-            // Create sample items for Warehouse inventory
             var warehouseItems = new List<Item>
             {
                 new Item
@@ -194,15 +266,9 @@ namespace InventoryManagement.Models
                 }
             };
 
-            // Add all items to database
             context.Items.AddRange(officeItems);
             context.Items.AddRange(electronicsItems);
             context.Items.AddRange(warehouseItems);
-
-            Console.WriteLine("Sample data created:");
-            Console.WriteLine($"- {officeInventory.Name}: {officeItems.Count} items");
-            Console.WriteLine($"- {electronicsInventory.Name}: {electronicsItems.Count} items");
-            Console.WriteLine($"- {warehouseInventory.Name}: {warehouseItems.Count} items");
         }
     }
 }

@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace InventoryManagement.Models
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -10,12 +11,12 @@ namespace InventoryManagement.Models
 
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<Item> Items { get; set; }
+        public DbSet<SiteContent> SiteContents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure Inventory relationships
             modelBuilder.Entity<Inventory>(entity =>
             {
                 entity.HasMany(i => i.Items)
@@ -27,7 +28,6 @@ namespace InventoryManagement.Models
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
 
-            // Configure Item relationships
             modelBuilder.Entity<Item>(entity =>
             {
                 entity.Property(i => i.Price)
@@ -39,6 +39,14 @@ namespace InventoryManagement.Models
                 entity.HasIndex(i => new { i.InventoryId, i.CustomId })
                     .IsUnique()
                     .HasDatabaseName("IX_Item_InventoryId_CustomId");
+            });
+
+            modelBuilder.Entity<SiteContent>(entity =>
+            {
+                entity.HasIndex(s => s.Key).IsUnique();
+                
+                entity.Property(s => s.LastUpdated)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
         }
 
@@ -57,7 +65,7 @@ namespace InventoryManagement.Models
         private void SetTimestamps()
         {
             var entries = ChangeTracker.Entries()
-                .Where(e => e.Entity is Inventory || e.Entity is Item)
+                .Where(e => e.Entity is Inventory || e.Entity is Item || e.Entity is ApplicationUser)
                 .Where(e => e.State == EntityState.Added);
 
             foreach (var entry in entries)
@@ -66,6 +74,8 @@ namespace InventoryManagement.Models
                     inventory.CreatedAt = DateTime.UtcNow;
                 else if (entry.Entity is Item item)
                     item.CreatedAt = DateTime.UtcNow;
+                else if (entry.Entity is ApplicationUser user)
+                    user.CreatedAt = DateTime.UtcNow;
             }
         }
     }

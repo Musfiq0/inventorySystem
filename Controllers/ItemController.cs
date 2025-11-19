@@ -1,39 +1,32 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InventoryManagement.Models;
-
+using Microsoft.AspNetCore.Authorization;
 namespace InventoryManagement.Controllers
 {
+    [Authorize]
     public class ItemController : Controller
     {
         private readonly AppDbContext _context;
-
         public ItemController(AppDbContext context)
         {
             _context = context;
         }
-
-        // GET: Item (shows items from all inventories)
+        [AllowAnonymous]
         public async Task<IActionResult> Index(string search, string category, string stock, string sort)
         {
             var items = _context.Items.Include(i => i.Inventory).AsQueryable();
-
-            // Apply search filter
             if (!string.IsNullOrEmpty(search))
             {
-                items = items.Where(i => i.Name.Contains(search) || 
-                                       i.Description.Contains(search) || 
-                                       i.SKU.Contains(search) ||
-                                       i.Inventory.Name.Contains(search));
+                items = items.Where(i => (i.Name ?? string.Empty).Contains(search) || 
+                                       (i.Description ?? string.Empty).Contains(search) || 
+                                       (i.SKU ?? string.Empty).Contains(search) ||
+                                       (i.Inventory != null && (i.Inventory.Name ?? string.Empty).Contains(search)));
             }
-
-            // Apply category filter
             if (!string.IsNullOrEmpty(category))
             {
                 items = items.Where(i => i.Category == category);
             }
-
-            // Apply stock filter
             if (!string.IsNullOrEmpty(stock))
             {
                 items = stock switch
@@ -44,8 +37,6 @@ namespace InventoryManagement.Controllers
                     _ => items
                 };
             }
-
-            // Apply sorting
             items = sort switch
             {
                 "quantity" => items.OrderBy(i => i.Quantity),
@@ -53,17 +44,13 @@ namespace InventoryManagement.Controllers
                 "date" => items.OrderByDescending(i => i.CreatedAt),
                 _ => items.OrderBy(i => i.Name)
             };
-
             ViewBag.CurrentSearch = search;
             ViewBag.CurrentCategory = category;
             ViewBag.CurrentStock = stock;
             ViewBag.CurrentSort = sort;
             ViewBag.TotalItems = await items.CountAsync();
-
             return View(await items.ToListAsync());
         }
-
-        // GET: Item/ByInventory/{inventoryId} (shows items for specific inventory)
         public async Task<IActionResult> ByInventory(int inventoryId, string search, string category, string stock, string sort)
         {
             var inventory = await _context.Inventories.FindAsync(inventoryId);
@@ -71,24 +58,17 @@ namespace InventoryManagement.Controllers
             {
                 return NotFound();
             }
-
             var items = _context.Items.Where(i => i.InventoryId == inventoryId).AsQueryable();
-
-            // Apply search filter
             if (!string.IsNullOrEmpty(search))
             {
-                items = items.Where(i => i.Name.Contains(search) || 
-                                       i.Description.Contains(search) || 
-                                       i.SKU.Contains(search));
+                items = items.Where(i => (i.Name ?? "").Contains(search) || 
+                                       (i.Description ?? "").Contains(search) || 
+                                       (i.SKU ?? "").Contains(search));
             }
-
-            // Apply category filter  
             if (!string.IsNullOrEmpty(category))
             {
                 items = items.Where(i => i.Category == category);
             }
-
-            // Apply stock filter
             if (!string.IsNullOrEmpty(stock))
             {
                 items = stock switch
@@ -99,8 +79,6 @@ namespace InventoryManagement.Controllers
                     _ => items
                 };
             }
-
-            // Apply sorting
             items = sort switch
             {
                 "quantity" => items.OrderBy(i => i.Quantity),
@@ -108,7 +86,6 @@ namespace InventoryManagement.Controllers
                 "date" => items.OrderByDescending(i => i.CreatedAt),
                 _ => items.OrderBy(i => i.Name)
             };
-
             ViewBag.Inventory = inventory;
             ViewBag.InventoryId = inventoryId;
             ViewBag.CurrentSearch = search;
@@ -117,16 +94,13 @@ namespace InventoryManagement.Controllers
             ViewBag.CurrentSort = sort;
             ViewBag.TotalItems = await items.CountAsync();
             ViewBag.CanEdit = true; // Set edit permissions
-
             return View("Index", await items.ToListAsync());
         }
-
         public IActionResult Create(int inventoryId)
         {
             ViewBag.InventoryId = inventoryId;
             return View();
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(int inventoryId, Item item)
@@ -134,31 +108,26 @@ namespace InventoryManagement.Controllers
             item.InventoryId = inventoryId;
             var existingItems = await _context.Items.Where(i => i.InventoryId == inventoryId).ToListAsync();
             item.CustomId = $"ITEM{(existingItems.Count + 1):D3}";
-
             if (ModelState.IsValid)
             {
                 _context.Add(item);
                 await _context.SaveChangesAsync();
                 return RedirectToAction("Details", "Inventory", new { id = inventoryId });
             }
-
             ViewBag.InventoryId = inventoryId;
             return View(item);
         }
-
         public async Task<IActionResult> Edit(int id)
         {
             var item = await _context.Items.FindAsync(id);
             if (item == null) return NotFound();
             return View(item);
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Item item)
         {
             if (id != item.Id) return NotFound();
-
             if (ModelState.IsValid)
             {
                 try
@@ -177,7 +146,6 @@ namespace InventoryManagement.Controllers
             }
             return View(item);
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)

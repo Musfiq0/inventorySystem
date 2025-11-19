@@ -1,19 +1,67 @@
 using Microsoft.EntityFrameworkCore;
 using InventoryManagement.Models;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (builder.Environment.IsProduction())
+{
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrEmpty(databaseUrl))
+    {
+        connectionString = databaseUrl;
+    }
+}
+
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
-    )
-);
+{
+    if (builder.Environment.IsProduction())
+    {
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)));
+    }
+    else
+    {
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)));
+    }
+    
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+    
+    options.User.RequireUniqueEmail = true;
+    
+    options.SignIn.RequireConfirmedEmail = false;
+    options.SignIn.RequireConfirmedPhoneNumber = false;
+})
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+    options.SlidingExpiration = true;
+});
 
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
-
 
 if (app.Environment.IsDevelopment())
 {
@@ -31,9 +79,10 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStaticFiles();
 app.UseRouting();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Configure routing
 app.MapControllerRoute(
     name: "itemsByInventory",
     pattern: "Item/Inventory/{inventoryId:int}",
@@ -43,7 +92,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Inventory}/{action=Index}/{id?}");
 
-// Initialize database
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -53,24 +101,17 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         
-        logger.LogInformation("Checking database connection...");
         await context.Database.CanConnectAsync();
-        logger.LogInformation("Database connection successful.");
-        
-        logger.LogInformation("Applying database migrations...");
         await context.Database.MigrateAsync();
-        logger.LogInformation("Database migrations applied successfully.");
-        
-        logger.LogInformation("Seeding database with initial data...");
         await SeedData.Initialize(services, builder.Configuration);
-        logger.LogInformation("Database initialization completed successfully.");
+    }
+    catch (MySqlConnector.MySqlException mysqlEx)
+    {
+        logger.LogError(mysqlEx, "MySQL connection error occurred while initializing the database.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while initializing the database.");      
-        Console.WriteLine("\nERROR: DATABASE CONNECTION FAILED");
-        Console.WriteLine("Please start XAMPP MySQL service and restart the application.");
-        Console.WriteLine("The application will continue but database features won't work.\n");
+        logger.LogError(ex, "An unexpected error occurred while initializing the database.");
     }
 }
 

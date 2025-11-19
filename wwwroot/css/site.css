@@ -49,6 +49,51 @@ a:hover {
     box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
 }
 
+/* Admin Edit Features */
+.admin-editable {
+    position: relative;
+    display: inline-block;
+}
+
+.admin-edit-btn {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -25px;
+    background: #ffc107;
+    color: #000;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    text-align: center;
+    line-height: 20px;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.admin-editable:hover .admin-edit-btn {
+    display: block;
+}
+
+.admin-edit-btn:hover {
+    background: #e0a800;
+    color: #000;
+    text-decoration: none;
+}
+
+/* Alert enhancements */
+.alert {
+    border: none;
+    border-radius: 8px;
+}
+
+/* User menu */
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 /* Buttons */
 .btn {
     font-weight: 500;

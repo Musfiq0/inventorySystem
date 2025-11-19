@@ -25,8 +25,6 @@ namespace InventoryManagement.Models
         [Display(Name = "Quantity")]
         public int Quantity { get; set; } = 0;
 
-        /// <summary>
-        /// Price per unit of this item
         [Required(ErrorMessage = "Price is required")]
         [Range(0, double.MaxValue, ErrorMessage = "Price must be zero or greater")]
         [Display(Name = "Price per Unit")]

@@ -1,0 +1,18 @@
+@model dynamic
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<InventoryManagement.Models.ApplicationUser> SignInManager
+@inject UserManager<InventoryManagement.Models.ApplicationUser> UserManager
+@{
+    var currentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+    var isAdmin = currentUser?.IsAdmin ?? false;
+}
+
+<span class="editable-content @(isAdmin ? "admin-editable" : "")" data-key="@Model.Key">
+    @Model.Value
+    @if (isAdmin)
+    {
+        <a href="@Url.Action("SiteContent", "Admin")" class="admin-edit-btn" title="Edit this content">
+            <i class="fas fa-edit"></i>
+        </a>
+    }
+</span>

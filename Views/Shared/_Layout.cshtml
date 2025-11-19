@@ -1,3 +1,11 @@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<InventoryManagement.Models.ApplicationUser> SignInManager
+@inject UserManager<InventoryManagement.Models.ApplicationUser> UserManager
+@{
+    var currentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+    var isAdmin = currentUser?.IsAdmin ?? false;
+}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,7 +39,67 @@
                 
                 <!-- Navigation Links -->
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <!-- Clean navigation without duplicate search -->
+                    <ul class="navbar-nav ms-auto">
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user me-1"></i>
+                                    @currentUser?.FullName
+                                    @if (isAdmin)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-1">Admin</span>
+                                    }
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                        <i class="fas fa-user-circle me-2"></i>Profile
+                                    </a></li>
+                                    @if (isAdmin)
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><h6 class="dropdown-header">Admin Tools</h6></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Dashboard">
+                                            <i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard
+                                        </a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="SiteContent">
+                                            <i class="fas fa-edit me-2"></i>Edit Site Content
+                                        </a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="UserManagement">
+                                            <i class="fas fa-users me-2"></i>Manage Users
+                                        </a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="AllInventories">
+                                            <i class="fas fa-boxes me-2"></i>All Inventories
+                                        </a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="AllItems">
+                                            <i class="fas fa-list me-2"></i>All Items
+                                        </a></li>
+                                    }
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Login">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Sign In
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Register">
+                                    <i class="fas fa-user-plus me-1"></i>Register
+                                </a>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         </nav>
@@ -84,9 +152,23 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <h6 class="text-muted">Inventory Management System</h6>
+                    <h6 class="text-muted">
+                        @await Component.InvokeAsync("SiteContent", "CompanyName")
+                        @if (isAdmin)
+                        {
+                            <a asp-controller="Admin" asp-action="SiteContent" class="btn btn-warning btn-sm ms-2" title="Edit Site Content">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        }
+                    </h6>
                     <p class="text-muted small mb-0">
-                        Simple inventory management solution.
+                        @await Component.InvokeAsync("SiteContent", "FooterText")
+                        @if (isAdmin)
+                        {
+                            <a asp-controller="Admin" asp-action="SiteContent" class="btn btn-warning btn-sm ms-2" title="Edit Site Content">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        }
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">

@@ -1,0 +1,99 @@
+@model IEnumerable<InventoryManagement.Models.Inventory>
+@{
+    ViewData["Title"] = "Manage All Inventories";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>
+                    <i class="fas fa-boxes text-primary me-2"></i>Manage All Inventories
+                </h2>
+                <p class="text-muted mb-0">Admin view of all inventories in the system</p>
+            </div>
+            <div>
+                <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-tachometer-alt me-1"></i>Admin Dashboard
+                </a>
+                <a asp-controller="Inventory" asp-action="Create" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>New Inventory
+                </a>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="row">
+            @foreach (var inventory in Model)
+            {
+                <div class="col-md-6 col-xl-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">@inventory.Name</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="@Url.Action("Details", "Inventory", new { id = inventory.Id })">
+                                        <i class="fas fa-eye me-2"></i>View Details
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="@Url.Action("Edit", "Inventory", new { id = inventory.Id })">
+                                        <i class="fas fa-edit me-2"></i>Edit
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-action="DeleteInventory" method="post" style="display: inline;">
+                                            <input type="hidden" name="id" value="@inventory.Id" />
+                                            <button type="submit" class="dropdown-item text-danger" 
+                                                    onclick="return confirm('Are you sure you want to delete this inventory and all its items?')">
+                                                <i class="fas fa-trash me-2"></i>Delete Inventory
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">@inventory.Description</p>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="h4 text-primary">@inventory.Items.Count</div>
+                                    <small class="text-muted">Items</small>
+                                </div>
+                                <div class="col-6">
+                                    <div class="h4 text-success">@inventory.Items.Sum(i => i.Quantity)</div>
+                                    <small class="text-muted">Total Qty</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>Created: @inventory.CreatedAt.ToString("MMM d, yyyy")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-boxes fa-4x text-muted mb-3"></i>
+                <h3>No Inventories Found</h3>
+                <p class="text-muted">Get started by creating your first inventory.</p>
+                <a asp-controller="Inventory" asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Create First Inventory
+                </a>
+            </div>
+        }
+    </div>
+</div>

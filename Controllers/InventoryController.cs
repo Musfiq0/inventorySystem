@@ -1,40 +1,36 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InventoryManagement.Models;
-
+using Microsoft.AspNetCore.Authorization;
 namespace InventoryManagement.Controllers
 {
+    [Authorize]
     public class InventoryController : Controller
     {
         private readonly AppDbContext _context;
-
         public InventoryController(AppDbContext context)
         {
             _context = context;
         }
-
+        [AllowAnonymous]
         public async Task<IActionResult> Index(string search)
         {
             var inventories = await _context.Inventories.Include(i => i.Items).ToListAsync();
-            
             if (!string.IsNullOrEmpty(search))
             {
                 inventories = inventories.Where(i => 
                     i.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                     (!string.IsNullOrEmpty(i.Description) && i.Description.Contains(search, StringComparison.OrdinalIgnoreCase))
                 ).ToList();
-                
                 ViewBag.CurrentSearch = search;
             }
-            
             return View(inventories);
         }
-
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int id)
         {
             var inventory = await _context.Inventories.Include(i => i.Items).FirstOrDefaultAsync(i => i.Id == id);
             if (inventory == null) return NotFound();
-
             var model = new InventoryDetailsViewModel
             {
                 Inventory = inventory,
@@ -42,12 +38,10 @@ namespace InventoryManagement.Controllers
             };
             return View(model);
         }
-
         public IActionResult Create()
         {
             return View(new Inventory());
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Inventory inventory)
@@ -61,20 +55,17 @@ namespace InventoryManagement.Controllers
             }
             return View(inventory);
         }
-
         public async Task<IActionResult> Edit(int id)
         {
             var inventory = await _context.Inventories.FindAsync(id);
             if (inventory == null) return NotFound();
             return View(inventory);
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Inventory inventory)
         {
             if (id != inventory.Id) return NotFound();
-            
             if (ModelState.IsValid)
             {
                 try
@@ -93,14 +84,12 @@ namespace InventoryManagement.Controllers
             }
             return View(inventory);
         }
-
         public async Task<IActionResult> Delete(int id)
         {
             var inventory = await _context.Inventories.Include(i => i.Items).FirstOrDefaultAsync(i => i.Id == id);
             if (inventory == null) return NotFound();
             return View(inventory);
         }
-
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)

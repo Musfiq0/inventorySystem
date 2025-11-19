@@ -374,7 +374,7 @@
                                     {
                                         <td>
                                             <a href="@Url.Action("Details", "Inventory", new { id = item.InventoryId })" class="text-decoration-none">
-                                                <span class="badge bg-secondary">@item.Inventory.Name</span>
+                                                <span class="badge bg-secondary">@(item.Inventory?.Name ?? "Unknown")</span>
                                             </a>
                                         </td>
                                     }

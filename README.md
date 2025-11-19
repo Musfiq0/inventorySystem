@@ -1,50 +1,83 @@
 # Inventory Management System
 
-A simple web-based inventory management system built with ASP.NET Core MVC and MySQL.
+A complete inventory management system with user authentication and admin controls.
 
-## Quick Start
+## Run Locally
 
-### Requirements
-- **XAMPP** with MySQL running
-- **.NET 8 SDK** installed
+### Prerequisites
+- XAMPP (for MySQL database)
+- .NET 8.0 SDK
 
-### Run the Application
-```bash
-dotnet run
-```
-Open http://localhost:5000 in your browser.
+### Setup
+1. Start XAMPP and enable MySQL
+2. Clone the repository
+3. Run the application:
+   ```
+   dotnet run
+   ```
+4. Open http://localhost:5000
+5. Login with admin: `admin@inventory.com` / `Admin123!`
+
+## Live Deployment
+
+### Render.com
+1. Connect your GitHub repository to Render
+2. Create a new Blueprint deployment
+3. Update `render.yaml` with your repository URL
+4. Deploy automatically with MySQL database
+
+Admin features allow editing all content directly from the website.
 
 ## Database
 
-The application automatically creates a MySQL database named `InventoryManagement` with sample data:
-- 3 sample inventories (Office Supplies, Electronics, Warehouse Storage)
-- 10 sample items with various quantities and prices
+The application automatically:
+- Creates MySQL database schema using Entity Framework migrations
+- Seeds initial data including admin user and sample inventories
+- Supports both development (XAMPP) and production (Render) MySQL databases
 
 ## Configuration
 
-Update `appsettings.json` to change database settings:
+### Development (appsettings.json)
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=InventoryManagement;User=root;Password=;Port=3306;"
+    "DefaultConnection": "Server=127.0.0.1;Database=InventoryManagement;User=root;Password=;Port=3306;AllowUserVariables=true;Convert Zero Datetime=True;"
   }
 }
 ```
 
+### Production
+Uses environment variables:
+- `DATABASE_URL` for database connection (provided by Render)
+
+## User Roles
+
+**Admin Users:**
+- Full access to all features
+- Can edit site content dynamically
+- User management capabilities
+- Complete inventory control
+
+**Regular Users:**
+- View inventories and items
+- Manage inventory items only
+- Cannot edit site content or manage users
+
 ## Troubleshooting
 
 **Database Connection Issues:**
-1. Ensure XAMPP MySQL is running (green status)
-2. Check connection string in `appsettings.json`
-3. Restart the application
+1. Ensure XAMPP MySQL is running (development)
+2. Verify DATABASE_URL environment variable (production)
+3. Check database server accessibility
+
+**Docker Issues:**
+```bash
+docker logs container_name
+```
 
 **Build Errors:**
 ```bash
 dotnet clean
+dotnet restore
 dotnet build
-```
-
-**Port Already in Use:**
-```bash
-dotnet run --urls http://localhost:5000
 ```
