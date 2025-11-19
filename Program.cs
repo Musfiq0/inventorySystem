@@ -7,12 +7,22 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
-Console.WriteLine($"Initial connection string: {connectionString}");
+Console.WriteLine($"Initial connection string: {connectionString ?? "Not set"}");
 
 if (builder.Environment.IsProduction())
 {
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     Console.WriteLine($"DATABASE_URL: {(string.IsNullOrEmpty(databaseUrl) ? "Not set" : "Set (length: " + databaseUrl.Length + ")")}");
+    
+    // Try multiple environment variables that Render might use
+    var mysqlUrl = Environment.GetEnvironmentVariable("MYSQL_URL");
+    var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+    var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+    var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+    var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+    var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
+    
+    Console.WriteLine($"Alternative vars - MYSQL_URL: {!string.IsNullOrEmpty(mysqlUrl)}, DB_HOST: {!string.IsNullOrEmpty(dbHost)}");
     
     if (!string.IsNullOrWhiteSpace(databaseUrl) && databaseUrl.Trim().Length > 0)
     {
@@ -52,10 +62,41 @@ if (builder.Environment.IsProduction())
             Console.WriteLine($"Unexpected error with DATABASE_URL: {ex.Message}. Using default connection string.");
         }
     }
+    else if (!string.IsNullOrWhiteSpace(mysqlUrl))
+    {
+        try
+        {
+            Console.WriteLine("Trying MYSQL_URL...");
+            var uri = new Uri(mysqlUrl.Trim());
+            if (uri.Host != null && uri.UserInfo != null && uri.UserInfo.Contains(':'))
+            {
+                var userParts = uri.UserInfo.Split(':');
+                if (userParts.Length == 2)
+                {
+                    connectionString = $"Server={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};User={userParts[0]};Password={userParts[1]};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
+                    Console.WriteLine("Successfully parsed MYSQL_URL");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing MYSQL_URL: {ex.Message}");
+        }
+    }
+    else if (!string.IsNullOrWhiteSpace(dbHost) && !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhiteSpace(dbUser))
+    {
+        Console.WriteLine("Using individual DB environment variables...");
+        connectionString = $"Server={dbHost};Port={dbPort};Database={dbName};User={dbUser};Password={dbPassword ?? ""};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
+        Console.WriteLine("Successfully built connection string from individual variables");
+    }
     else
     {
-        Console.WriteLine("Warning: DATABASE_URL environment variable is not set or empty. Using default connection string.");
+        Console.WriteLine("Warning: No database environment variables found. Application may fail to connect to database.");
+        // Set a default that will clearly fail with a helpful message
+        connectionString = "Server=NOT_CONFIGURED;Database=NOT_CONFIGURED;User=NOT_CONFIGURED;Password=;";
     }
+    
+    Console.WriteLine("Final connection string (masked): " + (connectionString?.Replace(";Password=", ";Password=***") ?? "null"));
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>

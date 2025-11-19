@@ -15,7 +15,7 @@ services:
         fromDatabase:
           name: inventory-mysql-db
           property: connectionString
-    healthCheckPath: /
+    healthCheckPath: /health
 
 databases:
   - name: inventory-mysql-db
