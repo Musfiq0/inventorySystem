@@ -15,16 +15,23 @@ if (builder.Environment.IsProduction())
     }
 }
 
-
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (builder.Environment.IsProduction())
     {
-        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)));
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)), 
+            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
     }
     else
     {
-        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)));
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 35)),
+            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null));
     }
     
     if (builder.Environment.IsDevelopment())
@@ -101,9 +108,10 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         
-        await context.Database.CanConnectAsync();
         await context.Database.MigrateAsync();
         await SeedData.Initialize(services, builder.Configuration);
+        
+        logger.LogInformation("Database initialized successfully");
     }
     catch (MySqlConnector.MySqlException mysqlEx)
     {

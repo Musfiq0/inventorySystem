@@ -2,15 +2,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InventoryManagement.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+
 namespace InventoryManagement.Controllers
 {
     [Authorize]
     public class InventoryController : Controller
     {
         private readonly AppDbContext _context;
-        public InventoryController(AppDbContext context)
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public InventoryController(AppDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
         [AllowAnonymous]
         public async Task<IActionResult> Index(string search)
@@ -48,7 +53,9 @@ namespace InventoryManagement.Controllers
         {
             if (ModelState.IsValid)
             {
+                var user = await _userManager.GetUserAsync(User);
                 inventory.CreatedAt = DateTime.Now;
+                inventory.CreatedBy = user?.Id;
                 _context.Add(inventory);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -59,6 +66,13 @@ namespace InventoryManagement.Controllers
         {
             var inventory = await _context.Inventories.FindAsync(id);
             if (inventory == null) return NotFound();
+            
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (inventory.CreatedBy != currentUser?.Id && !currentUser?.IsAdmin == true)
+            {
+                return Forbid();
+            }
+            
             return View(inventory);
         }
         [HttpPost]
@@ -66,10 +80,21 @@ namespace InventoryManagement.Controllers
         public async Task<IActionResult> Edit(int id, Inventory inventory)
         {
             if (id != inventory.Id) return NotFound();
+            
+            var existingInventory = await _context.Inventories.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id);
+            if (existingInventory == null) return NotFound();
+            
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (existingInventory.CreatedBy != currentUser?.Id && !currentUser?.IsAdmin == true)
+            {
+                return Forbid();
+            }
+            
             if (ModelState.IsValid)
             {
                 try
                 {
+                    inventory.CreatedBy = existingInventory.CreatedBy;
                     _context.Update(inventory);
                     await _context.SaveChangesAsync();
                 }
@@ -88,6 +113,13 @@ namespace InventoryManagement.Controllers
         {
             var inventory = await _context.Inventories.Include(i => i.Items).FirstOrDefaultAsync(i => i.Id == id);
             if (inventory == null) return NotFound();
+            
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (inventory.CreatedBy != currentUser?.Id && !currentUser?.IsAdmin == true)
+            {
+                return Forbid();
+            }
+            
             return View(inventory);
         }
         [HttpPost, ActionName("Delete")]
@@ -97,6 +129,12 @@ namespace InventoryManagement.Controllers
             var inventory = await _context.Inventories.FindAsync(id);
             if (inventory != null)
             {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (inventory.CreatedBy != currentUser?.Id && !currentUser?.IsAdmin == true)
+                {
+                    return Forbid();
+                }
+                
                 _context.Inventories.Remove(inventory);
                 await _context.SaveChangesAsync();
             }

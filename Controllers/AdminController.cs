@@ -22,30 +22,6 @@ namespace InventoryManagement.Controllers
             var user = await _userManager.GetUserAsync(User);
             return user?.IsAdmin ?? false;
         }
-        public async Task<IActionResult> SiteContent()
-        {
-            if (!await IsCurrentUserAdmin())
-                return Forbid();
-            var siteContents = await _context.SiteContents.OrderBy(s => s.Key).ToListAsync();
-            return View(siteContents);
-        }
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateSiteContent(int id, string value)
-        {
-            if (!await IsCurrentUserAdmin())
-                return Forbid();
-            var siteContent = await _context.SiteContents.FindAsync(id);
-            if (siteContent == null)
-                return NotFound();
-            siteContent.Value = value;
-            siteContent.LastUpdated = DateTime.UtcNow;
-            var user = await _userManager.GetUserAsync(User);
-            siteContent.UpdatedBy = user?.FullName;
-            await _context.SaveChangesAsync();
-            TempData["Success"] = $"'{siteContent.Key}' updated successfully.";
-            return RedirectToAction(nameof(SiteContent));
-        }
         public async Task<IActionResult> UserManagement()
         {
             if (!await IsCurrentUserAdmin())

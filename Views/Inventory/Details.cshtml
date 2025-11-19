@@ -1,3 +1,10 @@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<InventoryManagement.Models.ApplicationUser> SignInManager
+@inject UserManager<InventoryManagement.Models.ApplicationUser> UserManager
+@{
+    var currentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+    var isAdmin = currentUser?.IsAdmin ?? false;
+}
 @model InventoryDetailsViewModel
 
 @{
@@ -42,12 +49,22 @@
 
     <div class="row mb-3">
         <div class="col-12">
-            <a asp-controller="Item" asp-action="Create" asp-route-inventoryId="@Model.Inventory.Id" class="btn btn-success">
-                Add New Item
-            </a>
-            <a asp-controller="Inventory" asp-action="Edit" asp-route-id="@Model.Inventory.Id" class="btn btn-primary">
-                Edit Inventory
-            </a>
+            @{
+                var canEdit = isAdmin || Model.Inventory.CreatedBy == currentUser?.Id;
+            }
+            @if (canEdit)
+            {
+                <a asp-controller="Item" asp-action="Create" asp-route-inventoryId="@Model.Inventory.Id" class="btn btn-success">
+                    Add New Item
+                </a>
+                <a asp-controller="Inventory" asp-action="Edit" asp-route-id="@Model.Inventory.Id" class="btn btn-primary">
+                    Edit Inventory
+                </a>
+            }
+            else
+            {
+                <span class="text-muted">You can view this inventory but cannot modify it.</span>
+            }
             <a asp-controller="Inventory" asp-action="Index" class="btn btn-secondary">
                 Back to Inventories
             </a>
@@ -100,8 +117,14 @@
                                                 }
                                             </td>
                                             <td>
-                                                <a asp-controller="Item" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
-                                                <button type="button" class="btn btn-sm btn-danger ms-1" data-bs-toggle="modal" data-bs-target="#deleteModal@(item.Id)">Delete</button>
+                                                @{
+                                                    var canEditItem = isAdmin || item.CreatedBy == currentUser?.Id;
+                                                }
+                                                @if (canEditItem)
+                                                {
+                                                    <a asp-controller="Item" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">Edit</a>
+                                                    <button type="button" class="btn btn-sm btn-danger ms-1" data-bs-toggle="modal" data-bs-target="#deleteModal@(item.Id)">Delete</button>
+                                                }
                                             </td>
                                         </tr>
                                     }
@@ -128,25 +151,28 @@
 {
     @foreach (var item in Model.Items)
     {
-        <div class="modal fade" id="deleteModal@(item.Id)" tabindex="-1" aria-labelledby="deleteModalLabel@(item.Id)" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="deleteModalLabel@(item.Id)">Confirm Delete</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        Are you sure you want to delete the item "<strong>@item.Name</strong>" (ID: @item.CustomId)?
-                        <br><small class="text-muted">This action cannot be undone.</small>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <form asp-controller="Item" asp-action="Delete" asp-route-id="@item.Id" method="post" style="display: inline;">
-                            <button type="submit" class="btn btn-danger">Delete</button>
-                        </form>
+        @if (isAdmin || item.CreatedBy == currentUser?.Id)
+        {
+            <div class="modal fade" id="deleteModal@(item.Id)" tabindex="-1" aria-labelledby="deleteModalLabel@(item.Id)" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteModalLabel@(item.Id)">Confirm Delete</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Are you sure you want to delete the item "<strong>@item.Name</strong>" (ID: @item.CustomId)?
+                            <br><small class="text-muted">This action cannot be undone.</small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form asp-controller="Item" asp-action="Delete" asp-route-id="@item.Id" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        }
     }
 }

@@ -13,19 +13,17 @@ namespace InventoryManagement.Models
 
             try
             {
-                if (await context.Inventories.AnyAsync())
-                {
-                    return;
-                }
-
                 await CreateRoles(roleManager);
                 
-                await CreateAdminUser(userManager);
-                
-                CreateSiteContent(context);
+                var adminUser = await CreateAdminUser(userManager);
 
-                await CreateSampleData(context);
-                await context.SaveChangesAsync();
+                await AssignOwnershipToExistingData(context, adminUser.Id);
+
+                if (!await context.Inventories.AnyAsync())
+                {
+                    await CreateSampleData(context, adminUser.Id);
+                    await context.SaveChangesAsync();
+                }
             }
             catch (Exception)
             {
@@ -46,7 +44,7 @@ namespace InventoryManagement.Models
             }
         }
 
-        private static async Task CreateAdminUser(UserManager<ApplicationUser> userManager)
+        private static async Task<ApplicationUser> CreateAdminUser(UserManager<ApplicationUser> userManager)
         {
             string adminEmail = "admin@inventory.com";
             string adminPassword = "Admin123!";
@@ -73,62 +71,60 @@ namespace InventoryManagement.Models
                     await userManager.AddToRoleAsync(adminUser, "Admin");
                 }
             }
+
+            return adminUser;
         }
 
-        private static void CreateSiteContent(AppDbContext context)
+        private static async Task AssignOwnershipToExistingData(AppDbContext context, string adminUserId)
         {
-            var siteContents = new List<SiteContent>
-            {
-                new SiteContent
-                {
-                    Key = "SiteTitle",
-                    Value = "Inventory Management System",
-                    Description = "Main site title displayed in header"
-                },
-                new SiteContent
-                {
-                    Key = "SiteDescription",
-                    Value = "Organize, track, and manage your inventories with ease. Create categories, add items, and keep track of everything in one place.",
-                    Description = "Site description shown on homepage"
-                },
-                new SiteContent
-                {
-                    Key = "FooterText",
-                    Value = "Simple inventory management solution.",
-                    Description = "Footer description text"
-                },
-                new SiteContent
-                {
-                    Key = "CompanyName",
-                    Value = "Inventory Management",
-                    Description = "Company name for branding"
-                }
-            };
+            var unownedInventories = await context.Inventories
+                .Where(i => i.CreatedBy == null)
+                .ToListAsync();
 
-            context.SiteContents.AddRange(siteContents);
+            foreach (var inventory in unownedInventories)
+            {
+                inventory.CreatedBy = adminUserId;
+            }
+
+            var unownedItems = await context.Items
+                .Where(i => i.CreatedBy == null)
+                .ToListAsync();
+
+            foreach (var item in unownedItems)
+            {
+                item.CreatedBy = adminUserId;
+            }
+
+            if (unownedInventories.Any() || unownedItems.Any())
+            {
+                await context.SaveChangesAsync();
+            }
         }
 
-        private static async Task CreateSampleData(AppDbContext context)
+        private static async Task CreateSampleData(AppDbContext context, string adminUserId)
         {
             var officeInventory = new Inventory
             {
                 Name = "Office Supplies",
                 Description = "General office supplies and equipment",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = adminUserId
             };
 
             var electronicsInventory = new Inventory
             {
                 Name = "Electronics",
                 Description = "Computer equipment and electronic devices",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = adminUserId
             };
 
             var warehouseInventory = new Inventory
             {
                 Name = "Warehouse Storage",
                 Description = "Large items and bulk storage",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = adminUserId
             };
 
             context.Inventories.AddRange(officeInventory, electronicsInventory, warehouseInventory);
@@ -146,7 +142,8 @@ namespace InventoryManagement.Models
                     CustomId = Item.GenerateCustomId(0),
                     Category = "Office Supplies",
                     SKU = "PEN-001",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = adminUserId
                 },
                 new Item
                 {
@@ -269,6 +266,11 @@ namespace InventoryManagement.Models
             context.Items.AddRange(officeItems);
             context.Items.AddRange(electronicsItems);
             context.Items.AddRange(warehouseItems);
+
+            foreach (var item in officeItems.Concat(electronicsItems).Concat(warehouseItems))
+            {
+                item.CreatedBy = adminUserId;
+            }
         }
     }
 }

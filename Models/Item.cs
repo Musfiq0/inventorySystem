@@ -48,6 +48,11 @@ namespace InventoryManagement.Models
         [Display(Name = "Created Date")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public string? CreatedBy { get; set; }
+
+        [ForeignKey("CreatedBy")]
+        public virtual ApplicationUser? Creator { get; set; }
+
         [ForeignKey("InventoryId")]
         public virtual Inventory? Inventory { get; set; }
 

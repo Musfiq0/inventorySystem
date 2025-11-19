@@ -11,7 +11,6 @@ namespace InventoryManagement.Models
 
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<Item> Items { get; set; }
-        public DbSet<SiteContent> SiteContents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,14 +38,6 @@ namespace InventoryManagement.Models
                 entity.HasIndex(i => new { i.InventoryId, i.CustomId })
                     .IsUnique()
                     .HasDatabaseName("IX_Item_InventoryId_CustomId");
-            });
-
-            modelBuilder.Entity<SiteContent>(entity =>
-            {
-                entity.HasIndex(s => s.Key).IsUnique();
-                
-                entity.Property(s => s.LastUpdated)
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
         }
 

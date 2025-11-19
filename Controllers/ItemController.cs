@@ -2,15 +2,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InventoryManagement.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+
 namespace InventoryManagement.Controllers
 {
     [Authorize]
     public class ItemController : Controller
     {
         private readonly AppDbContext _context;
-        public ItemController(AppDbContext context)
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public ItemController(AppDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
         [AllowAnonymous]
         public async Task<IActionResult> Index(string search, string category, string stock, string sort)
@@ -108,8 +113,11 @@ namespace InventoryManagement.Controllers
             item.InventoryId = inventoryId;
             var existingItems = await _context.Items.Where(i => i.InventoryId == inventoryId).ToListAsync();
             item.CustomId = $"ITEM{(existingItems.Count + 1):D3}";
+            
             if (ModelState.IsValid)
             {
+                var user = await _userManager.GetUserAsync(User);
+                item.CreatedBy = user?.Id;
                 _context.Add(item);
                 await _context.SaveChangesAsync();
                 return RedirectToAction("Details", "Inventory", new { id = inventoryId });
@@ -121,6 +129,13 @@ namespace InventoryManagement.Controllers
         {
             var item = await _context.Items.FindAsync(id);
             if (item == null) return NotFound();
+            
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (item.CreatedBy != currentUser?.Id && !currentUser?.IsAdmin == true)
+            {
+                return Forbid();
+            }
+            
             return View(item);
         }
         [HttpPost]
@@ -128,10 +143,21 @@ namespace InventoryManagement.Controllers
         public async Task<IActionResult> Edit(int id, Item item)
         {
             if (id != item.Id) return NotFound();
+            
+            var existingItem = await _context.Items.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id);
+            if (existingItem == null) return NotFound();
+            
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (existingItem.CreatedBy != currentUser?.Id && !currentUser?.IsAdmin == true)
+            {
+                return Forbid();
+            }
+            
             if (ModelState.IsValid)
             {
                 try
                 {
+                    item.CreatedBy = existingItem.CreatedBy;
                     _context.Update(item);
                     await _context.SaveChangesAsync();
                 }
@@ -153,6 +179,12 @@ namespace InventoryManagement.Controllers
             var item = await _context.Items.FindAsync(id);
             if (item != null)
             {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (item.CreatedBy != currentUser?.Id && !currentUser?.IsAdmin == true)
+                {
+                    return Forbid();
+                }
+                
                 var inventoryId = item.InventoryId;
                 _context.Items.Remove(item);
                 await _context.SaveChangesAsync();

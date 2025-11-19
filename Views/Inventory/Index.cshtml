@@ -18,29 +18,17 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <h1 class="display-5 fw-bold mb-2">
-                                <i class="fas fa-boxes me-3"></i>@await Component.InvokeAsync("SiteContent", "SiteTitle")
-                                @if (isAdmin)
-                                {
-                                    <a asp-controller="Admin" asp-action="SiteContent" class="btn btn-warning btn-sm ms-2" title="Edit Site Content">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                }
+                                Inventory Management System
                             </h1>
                             <p class="lead mb-0">
-                                @await Component.InvokeAsync("SiteContent", "SiteDescription")
-                                @if (isAdmin)
-                                {
-                                    <a asp-controller="Admin" asp-action="SiteContent" class="btn btn-warning btn-sm ms-2" title="Edit Site Content">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                }
+                                Organize, track, and manage your inventories with ease. Create categories, add items, and keep track of everything in one place.
                             </p>
                         </div>
                         @if (isAdmin)
                         {
                             <div class="text-end">
                                 <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning">
-                                    <i class="fas fa-tachometer-alt me-1"></i>Admin Dashboard
+                                    Admin Dashboard
                                 </a>
                             </div>
                         }
@@ -69,12 +57,12 @@
                     </div>
                     <div class="col-md-4">
                         <button type="submit" class="btn btn-primary me-2">
-                            <i class="fas fa-search me-1"></i>Search
+                            Search
                         </button>
                         @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
                         {
                             <a asp-action="Index" asp-controller="Inventory" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>Clear
+                                Clear
                             </a>
                         }
                     </div>
@@ -118,13 +106,17 @@
                             <div class="card-header bg-light">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <h5 class="card-title mb-0">
-                                        <i class="fas fa-warehouse text-primary me-2"></i>
                                         @inventory.Name
                                     </h5>
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
-                                                type="button" data-bs-toggle="dropdown">
-                                            <i class="fas fa-ellipsis-v"></i>
+                                        @{
+                                            var canEdit = isAdmin || inventory.CreatedBy == currentUser?.Id;
+                                        }
+                                        @if (canEdit)
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                                    type="button" data-bs-toggle="dropdown">
+                                                Actions
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li>
@@ -138,7 +130,8 @@
                                                     </a>
                                                 </li>
                                             </ul>
-                                        </div>
+                                        }
+                                    </div>
                                     
                                 </div>
                             </div>
@@ -177,7 +170,6 @@
                                 <!-- Created Info -->
                                 <div class="d-flex justify-content-between align-items-center small text-muted mb-3">
                                     <span>
-                                        <i class="fas fa-calendar me-1"></i>
                                         @inventory.CreatedAt.ToString("MMM dd, yyyy")
                                     </span>
                                 </div>
@@ -188,7 +180,7 @@
                                 <div class="d-flex justify-content-between">
                                     <a asp-action="Details" asp-controller="Inventory" asp-route-id="@inventory.Id" 
                                        class="btn btn-primary">
-                                        <i class="fas fa-eye me-2"></i>View Details
+                                        View Details
                                     </a>
                                     
                                     <a asp-action="Create" asp-controller="Item" asp-route-inventoryId="@inventory.Id" 
@@ -206,7 +198,6 @@
         {
             <!-- Empty State -->
             <div class="text-center py-5">
-                <i class="fas fa-search fa-4x text-muted mb-4"></i>
                 @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
                 {
                     <h4 class="text-muted">No inventories found</h4>
@@ -214,7 +205,7 @@
                         No inventories match your search criteria "@ViewBag.CurrentSearch".
                     </p>
                     <a asp-action="Index" asp-controller="Inventory" class="btn btn-primary">
-                        <i class="fas fa-arrow-left me-2"></i>View All Inventories
+                        View All Inventories
                     </a>
                 }
                 else
