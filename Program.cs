@@ -6,14 +6,48 @@ var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"Initial connection string: {connectionString}");
+
 if (builder.Environment.IsProduction())
 {
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    Console.WriteLine($"DATABASE_URL: {(string.IsNullOrEmpty(databaseUrl) ? "Not set" : "Set")}");
+    
     if (!string.IsNullOrEmpty(databaseUrl))
     {
-        // Parse DATABASE_URL format: mysql://username:password@host:port/database
-        var uri = new Uri(databaseUrl);
-        connectionString = $"Server={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};User={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
+        try
+        {
+            // Parse DATABASE_URL format: mysql://username:password@host:port/database
+            var uri = new Uri(databaseUrl);
+            
+            // Validate URI components
+            if (uri.Host != null && uri.UserInfo != null && uri.UserInfo.Contains(':'))
+            {
+                var userParts = uri.UserInfo.Split(':');
+                if (userParts.Length == 2)
+                {
+                    connectionString = $"Server={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};User={userParts[0]};Password={userParts[1]};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
+                    Console.WriteLine("Successfully parsed DATABASE_URL");
+                }
+                else
+                {
+                    Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing user credentials. Using default connection string.");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Warning: Invalid DATABASE_URL format - missing host or credentials. Using default connection string.");
+            }
+        }
+        catch (UriFormatException ex)
+        {
+            Console.WriteLine($"Error parsing DATABASE_URL: {ex.Message}. Using default connection string.");
+        }
+    }
+    else
+    {
+        Console.WriteLine("Warning: DATABASE_URL environment variable is not set. Using default connection string.");
     }
 }
 
