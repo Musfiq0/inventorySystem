@@ -236,6 +236,34 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
 // Add a simple test endpoint
 app.MapGet("/test", () => "Application is running!");
 
+// Add debug endpoint to check environment variables (only in production for debugging)
+app.MapGet("/debug-env", (IWebHostEnvironment env) => 
+{
+    if (!env.IsProduction())
+    {
+        return Results.BadRequest("Debug endpoint only available in production");
+    }
+    
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+    var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+    var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+    var dbPort = Environment.GetEnvironmentVariable("DB_PORT");
+    
+    return Results.Json(new 
+    {
+        DATABASE_URL = !string.IsNullOrEmpty(databaseUrl) ? $"Set (length: {databaseUrl.Length}, starts with: {databaseUrl.Substring(0, Math.Min(15, databaseUrl.Length))}...)" : "Not set",
+        DB_HOST = dbHost ?? "Not set",
+        DB_NAME = dbName ?? "Not set", 
+        DB_USER = dbUser ?? "Not set",
+        DB_PORT = dbPort ?? "Not set",
+        PGHOST = Environment.GetEnvironmentVariable("PGHOST") ?? "Not set",
+        PGDATABASE = Environment.GetEnvironmentVariable("PGDATABASE") ?? "Not set",
+        PGUSER = Environment.GetEnvironmentVariable("PGUSER") ?? "Not set",
+        timestamp = DateTime.UtcNow
+    });
+});
+
 // Add root redirect to login if not authenticated
 app.MapGet("/", (HttpContext context) => 
 {
