@@ -40,8 +40,8 @@ if (builder.Environment.IsProduction())
                 var userParts = uri.UserInfo.Split(':');
                 if (userParts.Length == 2)
                 {
-                    var port = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
-                    connectionString = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
+                    var uriPort = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
+                    connectionString = $"Host={uri.Host};Port={uriPort};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
                     Console.WriteLine("Successfully parsed DATABASE_URL for PostgreSQL");
                 }
                 else
@@ -74,8 +74,8 @@ if (builder.Environment.IsProduction())
                 var userParts = uri.UserInfo.Split(':');
                 if (userParts.Length == 2)
                 {
-                    var port = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
-                    connectionString = $"Host={uri.Host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
+                    var altPort = uri.Port > 0 ? uri.Port : 5432; // Default PostgreSQL port
+                    connectionString = $"Host={uri.Host};Port={altPort};Database={uri.AbsolutePath.TrimStart('/')};Username={userParts[0]};Password={userParts[1]};SSL Mode=Require;Trust Server Certificate=true;";
                     Console.WriteLine("Successfully parsed alternative PostgreSQL URL");
                 }
             }
