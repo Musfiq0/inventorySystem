@@ -7,6 +7,7 @@ services:
     numInstances: 1
     plan: free
     region: oregon # or your preferred region
+    buildCommand: echo "Build starting..." && echo "Environment check:" && printenv | grep -E "(DATABASE|ASPNET)" || echo "No DATABASE/ASPNET vars found"
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production

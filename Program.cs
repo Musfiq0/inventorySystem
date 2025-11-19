@@ -12,14 +12,17 @@ Console.WriteLine($"Initial connection string: {connectionString}");
 if (builder.Environment.IsProduction())
 {
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-    Console.WriteLine($"DATABASE_URL: {(string.IsNullOrEmpty(databaseUrl) ? "Not set" : "Set")}");
+    Console.WriteLine($"DATABASE_URL: {(string.IsNullOrEmpty(databaseUrl) ? "Not set" : "Set (length: " + databaseUrl.Length + ")")}");
     
-    if (!string.IsNullOrEmpty(databaseUrl))
+    if (!string.IsNullOrWhiteSpace(databaseUrl) && databaseUrl.Trim().Length > 0)
     {
         try
         {
+            var trimmedUrl = databaseUrl.Trim();
+            Console.WriteLine($"Attempting to parse DATABASE_URL starting with: {trimmedUrl.Substring(0, Math.Min(10, trimmedUrl.Length))}...");
+            
             // Parse DATABASE_URL format: mysql://username:password@host:port/database
-            var uri = new Uri(databaseUrl);
+            var uri = new Uri(trimmedUrl);
             
             // Validate URI components
             if (uri.Host != null && uri.UserInfo != null && uri.UserInfo.Contains(':'))
@@ -44,10 +47,14 @@ if (builder.Environment.IsProduction())
         {
             Console.WriteLine($"Error parsing DATABASE_URL: {ex.Message}. Using default connection string.");
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Unexpected error with DATABASE_URL: {ex.Message}. Using default connection string.");
+        }
     }
     else
     {
-        Console.WriteLine("Warning: DATABASE_URL environment variable is not set. Using default connection string.");
+        Console.WriteLine("Warning: DATABASE_URL environment variable is not set or empty. Using default connection string.");
     }
 }
 
