@@ -176,6 +176,19 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Add a simple health check endpoint
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
+// Add root redirect to login if not authenticated
+app.MapGet("/", (HttpContext context) => 
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        return Results.Redirect("/Inventory");
+    }
+    return Results.Redirect("/Account/Login");
+});
+
 app.MapControllerRoute(
     name: "itemsByInventory",
     pattern: "Item/Inventory/{inventoryId:int}",
@@ -249,5 +262,9 @@ using (var scope = app.Services.CreateScope())
         }
     }
 }
+
+// Configure port for Render
+var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
+app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.Run();

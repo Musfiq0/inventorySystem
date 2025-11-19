@@ -31,10 +31,10 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 # Expose the port that the app runs on
-EXPOSE 8080
+EXPOSE 10000
 
-# Set environment variables
-ENV ASPNETCORE_URLS=http://+:8080
+# Set environment variables for Render
+ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT:-10000}
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Run the application
