@@ -70,16 +70,25 @@ namespace InventoryManagement.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index(string search)
         {
-            var inventories = await _context.Inventories.Include(i => i.Items).ToListAsync();
-            if (!string.IsNullOrEmpty(search))
+            try
             {
-                inventories = inventories.Where(i => 
-                    i.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    (!string.IsNullOrEmpty(i.Description) && i.Description.Contains(search, StringComparison.OrdinalIgnoreCase))
-                ).ToList();
-                ViewBag.CurrentSearch = search;
+                var inventories = await _context.Inventories.Include(i => i.Items).ToListAsync();
+                if (!string.IsNullOrEmpty(search))
+                {
+                    inventories = inventories.Where(i => 
+                        i.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrEmpty(i.Description) && i.Description.Contains(search, StringComparison.OrdinalIgnoreCase))
+                    ).ToList();
+                    ViewBag.CurrentSearch = search;
+                }
+                return View(inventories);
             }
-            return View(inventories);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database error in Inventory Index");
+                ViewBag.DatabaseError = "Database temporarily unavailable";
+                return View(new List<Inventory>());
+            }
         }
         [AllowAnonymous]
         public async Task<IActionResult> Details(int id)
