@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: inventory-management-postgres
+    name: inventory-management-final
     env: docker
     repo: https://github.com/Musfiq0/inventorySystem.git
     dockerfilePath: ./Dockerfile
@@ -14,33 +14,12 @@ services:
         value: "10000"
       - key: DATABASE_URL
         fromDatabase:
-          name: inventory-postgres-db
+          name: inventory-db-final
           property: connectionString
-      # Try alternative database environment variable mappings
-      - key: DB_HOST
-        fromDatabase:
-          name: inventory-postgres-db
-          property: host
-      - key: DB_NAME
-        fromDatabase:
-          name: inventory-postgres-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: inventory-postgres-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: inventory-postgres-db
-          property: password
-      - key: DB_PORT
-        fromDatabase:
-          name: inventory-postgres-db
-          property: port
 
 databases:
-  - name: inventory-postgres-db
-    databaseName: inventorymanagement
-    user: inventoryuser
+  - name: inventory-db-final
+    databaseName: inventory
+    user: inventoryapp
     plan: free
     region: oregon
