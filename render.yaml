@@ -2,7 +2,7 @@ services:
   - type: web
     name: inventory-management
     env: docker
-    repo: https://github.com/yourusername/inventory-management.git # Update with your repo
+    repo: https://github.com/Musfiq0/inventorySystem.git # Update with your repo
     dockerfilePath: ./Dockerfile
     numInstances: 1
     plan: free

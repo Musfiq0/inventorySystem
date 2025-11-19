@@ -11,7 +11,9 @@ if (builder.Environment.IsProduction())
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     if (!string.IsNullOrEmpty(databaseUrl))
     {
-        connectionString = databaseUrl;
+        // Parse DATABASE_URL format: mysql://username:password@host:port/database
+        var uri = new Uri(databaseUrl);
+        connectionString = $"Server={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};User={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};AllowUserVariables=true;Convert Zero Datetime=True;SslMode=Required;";
     }
 }
 
@@ -108,18 +110,59 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         
-        await context.Database.MigrateAsync();
-        await SeedData.Initialize(services, builder.Configuration);
-        
-        logger.LogInformation("Database initialized successfully");
+        // In production, add retry logic for database operations
+        if (builder.Environment.IsProduction())
+        {
+            var retryCount = 0;
+            const int maxRetries = 3;
+            
+            while (retryCount < maxRetries)
+            {
+                try
+                {
+                    await context.Database.MigrateAsync();
+                    await SeedData.Initialize(services, builder.Configuration);
+                    logger.LogInformation("Database initialized successfully");
+                    break;
+                }
+                catch (Exception ex) when (retryCount < maxRetries - 1)
+                {
+                    retryCount++;
+                    logger.LogWarning($"Database initialization attempt {retryCount} failed. Retrying in 5 seconds...");
+                    await Task.Delay(5000);
+                }
+            }
+        }
+        else
+        {
+            await context.Database.MigrateAsync();
+            await SeedData.Initialize(services, builder.Configuration);
+            logger.LogInformation("Database initialized successfully");
+        }
     }
     catch (MySqlConnector.MySqlException mysqlEx)
     {
         logger.LogError(mysqlEx, "MySQL connection error occurred while initializing the database.");
+        if (builder.Environment.IsProduction())
+        {
+            logger.LogCritical("Application will continue without database initialization in production.");
+        }
+        else
+        {
+            throw;
+        }
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "An unexpected error occurred while initializing the database.");
+        if (builder.Environment.IsProduction())
+        {
+            logger.LogCritical("Application will continue without database initialization in production.");
+        }
+        else
+        {
+            throw;
+        }
     }
 }
 
